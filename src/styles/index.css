@@ -5,3 +5,25 @@
   margin: 0;
   box-sizing: border-box;
 }
+
+html,
+body {
+  font-size: 62.5%;
+}
+
+.app {
+  height: 100vh;
+  background-color: #000;
+}
+
+#pixi-container {
+  margin: auto;
+  height: 100%;
+  width: 100%;
+  max-width: 140rem;
+  aspect-ratio: 4/3;
+}
+
+#pixi-container canvas {
+  display: block;
+}
