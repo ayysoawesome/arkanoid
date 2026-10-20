@@ -1,2 +1,4 @@
 export { Game } from "./Game";
-export { SceneManager } from "./SceneManager";
+export { SceneManager, Scene } from "./SceneManager";
+export { InputManager } from "./InputManager";
+export { GameWorld } from "./GameWorld";

@@ -1,6 +1,7 @@
 import { Container } from "pixi.js";
 
 export abstract class Scene extends Container {
+  abstract update(dtSeconds: number): void;
   abstract resize(width: number, height: number): void;
 }
 
@@ -35,6 +36,10 @@ export class SceneManager {
 
     this.stage.addChild(nextScene);
     nextScene.resize(this.width, this.height);
+  }
+
+  update(dtSeconds: number): void {
+    this.currentScene?.update(dtSeconds);
   }
 
   resize(width: number, height: number): void {
