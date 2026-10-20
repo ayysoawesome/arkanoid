@@ -2,7 +2,15 @@ import { worldConfig } from "@/config";
 import { Player } from "@/entities";
 
 export class PlayerControlSystem {
-  update(player: Player, direction: number, dtSeconds: number) {
+  update({
+    player,
+    direction,
+    dtSeconds,
+  }: {
+    player: Player;
+    direction: number;
+    dtSeconds: number;
+  }) {
     const halfWidth = player.width / 2;
     const nextX = player.position.x + direction * player.speed * dtSeconds;
 

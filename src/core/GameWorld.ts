@@ -16,7 +16,7 @@ export class GameWorld {
     spacePressed: boolean;
     dtSeconds: number;
   }): void {
-    this.playerControl.update(this.player, direction, dtSeconds);
+    this.playerControl.update({ player: this.player, direction, dtSeconds });
     this.ballPhysics.update({
       player: this.player,
       ball: this.ball,
