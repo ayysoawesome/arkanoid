@@ -5,7 +5,10 @@ import { worldConfig } from "@/config";
 
 export class GameScene extends Scene {
   private readonly world = new GameWorld();
-  private readonly worldView = new WorldView(this.world.player);
+  private readonly worldView = new WorldView(
+    this.world.player,
+    this.world.ball,
+  );
   private readonly hud = new GameHud();
 
   constructor(private readonly inputManager: InputManager) {
@@ -32,6 +35,6 @@ export class GameScene extends Scene {
   update(dtSeconds: number): void {
     const direction = this.inputManager.horizontal;
     this.world.update(direction, dtSeconds);
-    this.worldView.syncPlayer(this.world.player);
+    this.worldView.sync({ player: this.world.player, ball: this.world.ball });
   }
 }
