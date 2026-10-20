@@ -1,4 +1,4 @@
-import { worldConfig } from "@/config";
+import { fieldBounds } from "@/config";
 import { Player } from "@/entities";
 
 export class PlayerControlSystem {
@@ -11,12 +11,9 @@ export class PlayerControlSystem {
     direction: number;
     dtSeconds: number;
   }) {
-    const halfWidth = player.width / 2;
     const nextX = player.position.x + direction * player.speed * dtSeconds;
-
-    player.position.x = Math.max(
-      halfWidth,
-      Math.min(worldConfig.width - halfWidth, nextX),
-    );
+    const minX = fieldBounds.left + player.width / 2;
+    const maxX = fieldBounds.right - player.width / 2;
+    player.position.x = Math.max(minX, Math.min(maxX, nextX));
   }
 }
