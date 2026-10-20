@@ -34,7 +34,9 @@ export class GameScene extends Scene {
 
   update(dtSeconds: number): void {
     const direction = this.inputManager.horizontal;
-    this.world.update(direction, dtSeconds);
+    const spacePressed = this.inputManager.consumeSpacePress();
+
+    this.world.update({ direction, spacePressed, dtSeconds });
     this.worldView.sync({ player: this.world.player, ball: this.world.ball });
   }
 }

@@ -1,7 +1,8 @@
-const allowedKeys = new Set(["ArrowLeft", "ArrowRight"]);
+const allowedKeys = new Set(["ArrowLeft", "ArrowRight", "Space"]);
 
 export class InputManager {
   private readonly pressedKeys = new Set<string>();
+  private spacePressPending: boolean = false;
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     canvas.tabIndex = 0;
@@ -10,19 +11,35 @@ export class InputManager {
     canvas.addEventListener("blur", this.onBlur);
   }
 
+  consumeSpacePress(): boolean {
+    const action = this.spacePressPending;
+    this.spacePressPending = false;
+    return action;
+  }
+
   private readonly onKeyDown = (event: KeyboardEvent): void => {
     if (!allowedKeys.has(event.code)) return;
     event.preventDefault();
+
+    if (
+      event.code === "Space" &&
+      !event.repeat &&
+      !this.pressedKeys.has("Space")
+    ) {
+      this.spacePressPending = true;
+    }
+
     this.pressedKeys.add(event.code);
   };
 
   private readonly onKeyUp = (event: KeyboardEvent): void => {
-    if (event.code !== "ArrowLeft" && event.code !== "ArrowRight") return;
+    if (!allowedKeys.has(event.code)) return;
     event.preventDefault();
     this.pressedKeys.delete(event.code);
   };
 
   private readonly onBlur = (): void => {
+    this.spacePressPending = false;
     this.pressedKeys.clear();
   };
 
@@ -37,6 +54,7 @@ export class InputManager {
     this.canvas.removeEventListener("keydown", this.onKeyDown);
     this.canvas.removeEventListener("keyup", this.onKeyUp);
     this.canvas.removeEventListener("blur", this.onBlur);
+    this.spacePressPending = false;
     this.pressedKeys.clear();
   }
 }
