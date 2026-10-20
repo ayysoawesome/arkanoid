@@ -8,11 +8,13 @@ export class GameScene extends Scene {
   private readonly worldView = new WorldView(
     this.world.player,
     this.world.ball,
+    this.world.bricks,
   );
   private readonly hud = new GameHud();
 
   constructor(private readonly inputManager: InputManager) {
     super();
+
     this.addChild(this.worldView, this.hud);
   }
 

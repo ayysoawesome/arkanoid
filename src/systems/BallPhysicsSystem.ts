@@ -1,4 +1,4 @@
-import { Ball, Player } from "@/entities";
+import { Ball, Brick, Player } from "@/entities";
 import { fieldBounds } from "@/config";
 
 const MAX_BOUNCE_ANGLE = (70 * Math.PI) / 180;
@@ -10,28 +10,28 @@ export class BallPhysicsSystem {
     dtSeconds,
     player,
     launchRequested,
+    bricks,
   }: {
     ball: Ball;
     player: Player;
     dtSeconds: number;
     launchRequested: boolean;
+    bricks: readonly Brick[];
   }): void {
     if (ball.attached) {
       this.updateAttachedBall(ball, player, launchRequested);
       return;
     }
 
-    const ballY = ball.position.y;
+    const previousX = ball.position.x;
+    const previousY = ball.position.y;
 
-    this.moveBall(ball, dtSeconds);
-    this.resolveWallCollisions(ball);
-
-    this.resolvePlayerCollision(ball, player, ballY);
-  }
-
-  private moveBall(ball: Ball, dtSeconds: number) {
     ball.position.x += ball.velocity.x * dtSeconds;
     ball.position.y += ball.velocity.y * dtSeconds;
+
+    this.resolveWallCollisions(ball);
+    this.resolveBrickCollision(ball, bricks, previousX, previousY);
+    this.resolvePlayerCollision(ball, player, previousY);
   }
 
   private resolvePlayerCollision(ball: Ball, player: Player, prevY: number) {
@@ -57,6 +57,45 @@ export class BallPhysicsSystem {
 
     ball.position.y = playerTop - ball.radius;
     this.setBallDirection(ball, bounceAngle);
+  }
+
+  private resolveBrickCollision(
+    ball: Ball,
+    bricks: readonly Brick[],
+    previousX: number,
+    previousY: number,
+  ): void {
+    for (const brick of bricks) {
+      if (brick.destroyed) continue;
+
+      const left = brick.position.x;
+      const right = left + Brick.WIDTH;
+      const top = brick.position.y;
+      const bottom = top + Brick.HEIGHT;
+
+      const closestX = Math.max(left, Math.min(ball.position.x, right));
+      const closestY = Math.max(top, Math.min(ball.position.y, bottom));
+      const offsetX = ball.position.x - closestX;
+      const offsetY = ball.position.y - closestY;
+
+      if (offsetX * offsetX + offsetY * offsetY >= ball.radius * ball.radius) {
+        continue;
+      }
+
+      brick.destroyed = true;
+
+      ball.position.x = previousX;
+      ball.position.y = previousY;
+
+      if (offsetX !== 0) ball.velocity.x *= -1;
+      if (offsetY !== 0) ball.velocity.y *= -1;
+
+      if (offsetX === 0 && offsetY === 0) {
+        ball.velocity.y *= -1;
+      }
+
+      return;
+    }
   }
 
   private resolveWallCollisions(ball: Ball) {
