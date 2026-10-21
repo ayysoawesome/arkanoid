@@ -1,19 +1,25 @@
-import { GameWorld, InputManager, Scene } from "@/core";
+import { GameAssets, GameWorld, InputManager, Scene } from "@/core";
 import { WorldView } from "@/rendering";
 import { GameHud } from "@/ui/hud";
 import { worldConfig } from "@/config";
 
 export class GameScene extends Scene {
   private readonly world = new GameWorld();
-  private readonly worldView = new WorldView(
-    this.world.player,
-    this.world.ball,
-    this.world.bricks,
-  );
+  private readonly worldView: WorldView;
   private readonly hud = new GameHud();
 
-  constructor(private readonly inputManager: InputManager) {
+  constructor(
+    private readonly inputManager: InputManager,
+    assets: GameAssets,
+  ) {
     super();
+
+    this.worldView = new WorldView(
+      this.world.player,
+      this.world.ball,
+      this.world.bricks,
+      assets,
+    );
 
     this.addChild(this.worldView, this.hud);
   }

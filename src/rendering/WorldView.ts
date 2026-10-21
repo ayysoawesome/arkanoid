@@ -1,6 +1,7 @@
-import { fieldBounds, worldConfig } from "@/config";
+import { worldConfig } from "@/config";
+import { GameAssets } from "@/core";
 import { Ball, Brick, Player } from "@/entities";
-import { Container, Graphics } from "pixi.js";
+import { Container, Graphics, Sprite } from "pixi.js";
 
 type WorldViewState = {
   readonly player: Player;
@@ -8,8 +9,8 @@ type WorldViewState = {
 };
 
 export class WorldView extends Container {
-  private readonly playerView = new Graphics();
-  private readonly ballView = new Graphics();
+  private readonly playerView: Sprite;
+  private readonly ballView: Sprite;
   private bricksView = new Container();
   private readonly brickViews = new Map<Brick, Graphics>();
 
@@ -17,18 +18,20 @@ export class WorldView extends Container {
     readonly player: Player,
     readonly ball: Ball,
     readonly bricks: Brick[],
+    assets: GameAssets,
   ) {
     super();
 
-    const fieldView = new Graphics()
-      .rect(0, 0, worldConfig.width, worldConfig.height)
-      .fill(0x183060);
+    const fieldView = new Sprite(assets.field1);
+    fieldView.anchor.set(0, 0);
+    fieldView.position.set(0, 0);
+    fieldView.setSize(worldConfig.width, worldConfig.height);
 
-    this.playerView
-      .rect(-player.width / 2, -player.height / 2, player.width, player.height)
-      .fill(0xffffff);
+    this.playerView = new Sprite(assets.player);
+    this.playerView.anchor.set(0.5);
 
-    this.ballView.circle(0, 0, ball.radius).fill(0xffffff);
+    this.ballView = new Sprite(assets.ball);
+    this.ballView.anchor.set(0.5);
 
     for (const brick of bricks) {
       const view = new Graphics()
@@ -40,19 +43,9 @@ export class WorldView extends Container {
       this.brickViews.set(brick, view);
     }
 
-    const { left, right, top } = fieldBounds;
-
-    const wallsView = new Graphics()
-      .rect(0, 0, left, worldConfig.height)
-      .fill(0xaaaaaa)
-      .rect(right, 0, worldConfig.width - right, worldConfig.height)
-      .fill(0xaaaaaa)
-      .rect(left, 0, right - left, top)
-      .fill(0xaaaaaa);
-
     this.addChild(
       fieldView,
-      wallsView,
+
       this.bricksView,
       this.playerView,
       this.ballView,

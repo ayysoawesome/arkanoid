@@ -3,6 +3,7 @@ import { SceneManager } from "./SceneManager";
 import { GameScene } from "@/scenes/GameScene";
 import { InputManager } from "./InputManager";
 import { gameConfig } from "@/config";
+import { GameAssets, loadGameAssets } from "./assetsLoader";
 
 export class Game {
   readonly app = new Application();
@@ -21,9 +22,10 @@ export class Game {
     this.host.appendChild(this.app.canvas);
 
     this.inputManager = new InputManager(this.app.canvas);
-
     this.sceneManager = new SceneManager(this.app.stage);
-    this.registerScenes();
+
+    const assets = await loadGameAssets();
+    this.registerScenes(assets);
     this.sceneManager.resize(this.app.screen.width, this.app.screen.height);
     this.sceneManager.show("game");
 
@@ -49,9 +51,9 @@ export class Game {
     }
   }
 
-  private registerScenes(): void {
+  private registerScenes(assets: GameAssets): void {
     this.sceneManager?.register("game", () => {
-      return new GameScene(this.inputManager);
+      return new GameScene(this.inputManager, assets);
     });
   }
 
