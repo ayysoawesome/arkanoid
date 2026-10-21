@@ -16,4 +16,15 @@ export class Ball {
       y: player.position.y - player.height / 2 - this.radius,
     };
   }
+
+  reset(player: Player): void {
+    this.currentSpeed = this.baseSpeed;
+    this.velocity.x = 0;
+    this.velocity.y = 0;
+    this.attached = true;
+    this.alive = true;
+
+    this.position.x = player.position.x;
+    this.position.y = player.position.y - player.height / 2 - this.radius;
+  }
 }

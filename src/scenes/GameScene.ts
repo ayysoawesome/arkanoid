@@ -45,6 +45,10 @@ export class GameScene extends Scene {
     const spacePressed = this.inputManager.consumeSpacePress();
 
     this.world.update({ direction, spacePressed, dtSeconds });
-    this.worldView.sync({ player: this.world.player, ball: this.world.ball });
+    this.worldView.sync({
+      player: this.world.player,
+      ball: this.world.ball,
+      bricks: this.world.bricks,
+    });
   }
 }

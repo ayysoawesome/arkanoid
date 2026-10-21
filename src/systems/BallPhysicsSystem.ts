@@ -82,7 +82,7 @@ export class BallPhysicsSystem {
         continue;
       }
 
-      brick.destroyed = true;
+      brick.hit();
 
       ball.position.x = previousX;
       ball.position.y = previousY;

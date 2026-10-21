@@ -5,4 +5,9 @@ export class Player {
   readonly height = 6;
   readonly speed = 160;
   position = { x: worldConfig.width / 2, y: worldConfig.height - 16 };
+
+  reset() {
+    this.position.x = worldConfig.width / 2;
+    this.position.y = worldConfig.height - 16;
+  }
 }

@@ -1,0 +1,53 @@
+import { fieldBounds } from "@/config";
+import { Brick } from "@/entities";
+import { levels } from "@/levels";
+
+const GRID_COLUMNS = 11;
+const GAP = 3;
+const START_Y = fieldBounds.top + 24;
+
+export class LevelSystem {
+  private currentIndex: number = 0;
+
+  load(index: number): Brick[] {
+    const level = levels.find((item) => item.index === index);
+    if (!level) {
+      throw new Error(`Level ${index} does not exist`);
+    }
+    const fieldWidth = fieldBounds.right - fieldBounds.left;
+
+    const gridWidth = GRID_COLUMNS * Brick.WIDTH + (GRID_COLUMNS - 1) * GAP;
+    const startX = fieldBounds.left + (fieldWidth - gridWidth) / 2;
+
+    return level.bricks.map(({ row, column, kind }) => {
+      if (column < 0 || column > 10) {
+        throw new Error("Max column index is 10");
+      }
+
+      const position = {
+        x: startX + column * (Brick.WIDTH + GAP),
+        y: START_Y + row * (Brick.HEIGHT + GAP),
+      };
+
+      return new Brick(position, kind);
+    });
+  }
+
+  loadNext(): Brick[] | null {
+    if (!levels.find((level) => level.index === this.currentIndex + 1))
+      return null;
+
+    this.currentIndex++;
+
+    return this.load(this.currentIndex);
+  }
+
+  reset() {
+    this.currentIndex = 0;
+  }
+
+  isCleared(bricks: readonly Brick[]): boolean {
+    const breakable = bricks.filter((brick) => brick.kind !== "gold");
+    return breakable.length > 0 && breakable.every((brick) => brick.destroyed);
+  }
+}

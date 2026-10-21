@@ -1,3 +1,3 @@
 export { Player } from "./Player";
 export { Ball } from "./Ball";
-export { Brick } from "./Brick";
+export { Brick, type BrickKind } from "./Brick";
