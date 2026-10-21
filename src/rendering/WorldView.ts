@@ -29,8 +29,8 @@ export class WorldView extends Container {
   private readonly brickViews = new Map<Brick, Graphics | Sprite>();
 
   constructor(
-    readonly player: Player,
-    readonly ball: Ball,
+    player: Player,
+    ball: Ball,
     bricks: Brick[],
     private readonly assets: GameAssets,
   ) {
