@@ -18,6 +18,8 @@ export class BallPhysicsSystem {
     launchRequested: boolean;
     bricks: readonly Brick[];
   }): void {
+    if (!ball.alive) return;
+
     if (ball.attached) {
       this.updateAttachedBall(ball, player, launchRequested);
       return;
@@ -32,6 +34,10 @@ export class BallPhysicsSystem {
     this.resolveWallCollisions(ball);
     this.resolveBrickCollision(ball, bricks, previousX, previousY);
     this.resolvePlayerCollision(ball, player, previousY);
+
+    if (ball.position.y - ball.radius >= fieldBounds.bottom) {
+      ball.alive = false;
+    }
   }
 
   private resolvePlayerCollision(ball: Ball, player: Player, prevY: number) {

@@ -20,6 +20,7 @@ export class GameScene extends Scene {
       this.world.bricks,
       assets,
     );
+    this.hud.setLives(this.world.lives);
 
     this.addChild(this.worldView, this.hud);
   }
@@ -45,6 +46,7 @@ export class GameScene extends Scene {
     const spacePressed = this.inputManager.consumeKeyPress("Space");
 
     this.world.update({ direction, spacePressed, dtSeconds });
+    this.hud.setLives(this.world.lives);
     this.worldView.sync({
       player: this.world.player,
       ball: this.world.ball,

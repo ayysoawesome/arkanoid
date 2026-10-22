@@ -2,12 +2,14 @@ interface IWorldConfig {
   width: number;
   height: number;
   borderWidth: number;
+  initialLives: number;
 }
 
 export const worldConfig: IWorldConfig = {
   width: 224,
   height: 256,
   borderWidth: 8,
+  initialLives: 3,
 } as const;
 
 export const fieldBounds = {

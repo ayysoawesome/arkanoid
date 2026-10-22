@@ -1,5 +1,8 @@
+import { worldConfig } from "@/config";
 import { Ball, Brick, Player } from "@/entities";
 import { BallPhysicsSystem, LevelSystem, PlayerControlSystem } from "@/systems";
+
+type GameStatus = "playing" | "victory" | "defeat";
 
 export class GameWorld {
   readonly player = new Player();
@@ -7,7 +10,9 @@ export class GameWorld {
   private readonly playerControl = new PlayerControlSystem();
   private readonly ballPhysics = new BallPhysicsSystem();
   private readonly levelSystem = new LevelSystem();
+  private remainingLives = worldConfig.initialLives;
   bricks: Brick[] = [];
+  private gameStatus: GameStatus = "playing";
 
   constructor() {
     this.startCampaign();
@@ -22,6 +27,7 @@ export class GameWorld {
     spacePressed: boolean;
     dtSeconds: number;
   }): void {
+    if (this.gameStatus !== "playing") return;
     this.playerControl.update({ player: this.player, direction, dtSeconds });
     this.ballPhysics.update({
       player: this.player,
@@ -31,8 +37,22 @@ export class GameWorld {
       bricks: this.bricks,
     });
     if (this.levelSystem.isCleared(this.bricks)) {
-      this.startNextLevel();
+      if (!this.startNextLevel()) {
+        this.gameStatus = "victory";
+      }
+      return;
     }
+    if (!this.ball.alive) {
+      this.handleBallLoss();
+    }
+  }
+
+  get lives(): number {
+    return this.remainingLives;
+  }
+
+  get status(): GameStatus {
+    return this.gameStatus;
   }
 
   private startCampaign() {
@@ -43,6 +63,18 @@ export class GameWorld {
     }
 
     this.bricks = bricks;
+  }
+
+  private handleBallLoss(): void {
+    this.remainingLives--;
+
+    if (this.remainingLives === 0) {
+      this.gameStatus = "defeat";
+      return;
+    }
+
+    this.player.reset();
+    this.ball.reset(this.player);
   }
 
   private startNextLevel(): boolean {
