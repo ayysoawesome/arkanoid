@@ -42,7 +42,7 @@ export class GameScene extends Scene {
 
   update(dtSeconds: number): void {
     const direction = this.inputManager.horizontal;
-    const spacePressed = this.inputManager.consumeSpacePress();
+    const spacePressed = this.inputManager.consumeKeyPress("Space");
 
     this.world.update({ direction, spacePressed, dtSeconds });
     this.worldView.sync({

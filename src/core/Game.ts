@@ -1,9 +1,10 @@
-import { Application, Ticker } from "pixi.js";
+import { Application, Assets, Ticker } from "pixi.js";
 import { SceneManager } from "./SceneManager";
 import { GameScene } from "@/scenes/GameScene";
 import { InputManager } from "./InputManager";
 import { gameConfig } from "@/config";
 import { GameAssets, loadGameAssets } from "./assetsLoader";
+import { MenuScene } from "@/scenes";
 
 export class Game {
   readonly app = new Application();
@@ -24,10 +25,14 @@ export class Game {
     this.inputManager = new InputManager(this.app.canvas);
     this.sceneManager = new SceneManager(this.app.stage);
 
+    await Assets.load({
+      src: "/fonts/PixelOperator8.ttf",
+      data: { family: "PixelOperator8" },
+    });
     const assets = await loadGameAssets();
     this.registerScenes(assets);
     this.sceneManager.resize(this.app.screen.width, this.app.screen.height);
-    this.sceneManager.show("game");
+    this.sceneManager.show("menu");
 
     this.app.renderer.on("resize", this.onRendererResize);
 
@@ -55,6 +60,11 @@ export class Game {
     this.sceneManager?.register("game", () => {
       return new GameScene(this.inputManager, assets);
     });
+    const onGameStart = () => this.sceneManager.show("game");
+    this.sceneManager.register(
+      "menu",
+      () => new MenuScene(this.inputManager, onGameStart),
+    );
   }
 
   start(): void {
