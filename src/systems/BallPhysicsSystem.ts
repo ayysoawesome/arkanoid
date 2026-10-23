@@ -1,10 +1,14 @@
 import { Ball, Brick, Player } from "@/entities";
 import { fieldBounds } from "@/config";
+import type { EventWriter } from "@/core/EventQueue";
+import type { BrickHitEvent } from "@/core/WorldEvent";
 
 const MAX_BOUNCE_ANGLE = (70 * Math.PI) / 180;
 const LAUNCH_ANGLE = (20 * Math.PI) / 180;
 
 export class BallPhysicsSystem {
+  constructor(private readonly events: EventWriter<BrickHitEvent>) {}
+
   update({
     ball,
     dtSeconds,
@@ -89,7 +93,7 @@ export class BallPhysicsSystem {
         continue;
       }
 
-      brick.hit();
+      this.events.emit({ type: "brickHit", brick });
 
       ball.position.x = previousX;
       ball.position.y = previousY;

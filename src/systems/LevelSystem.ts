@@ -9,6 +9,10 @@ const START_Y = fieldBounds.top + 24;
 export class LevelSystem {
   private currentIndex: number = 0;
 
+  get currentLevelIndex(): number {
+    return this.currentIndex;
+  }
+
   load(index: number): Brick[] {
     const level = levels.find((item) => item.index === index);
     if (!level) {
@@ -33,13 +37,19 @@ export class LevelSystem {
     });
   }
 
-  loadNext(): Brick[] | null {
-    if (!levels.find((level) => level.index === this.currentIndex + 1))
-      return null;
+  hasNextLevel(): boolean {
+    return levels.some((level) => level.index === this.currentIndex + 1);
+  }
 
-    this.currentIndex++;
+  loadNext(): Brick[] {
+    if (!this.hasNextLevel()) {
+      throw new Error("No next level available");
+    }
 
-    return this.load(this.currentIndex);
+    const nextIndex = this.currentIndex + 1;
+    const bricks = this.load(nextIndex);
+    this.currentIndex = nextIndex;
+    return bricks;
   }
 
   reset() {

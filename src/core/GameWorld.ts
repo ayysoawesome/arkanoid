@@ -1,21 +1,35 @@
 import { worldConfig } from "@/config";
 import { Ball, Brick, Player } from "@/entities";
-import { BallPhysicsSystem, LevelSystem, PlayerControlSystem } from "@/systems";
+import {
+  BallPhysicsSystem,
+  BrickSystem,
+  LevelSystem,
+  PlayerControlSystem,
+} from "@/systems";
+import { EventQueue } from "./EventQueue";
+import type { GameOutcome, WorldEvent } from "./WorldEvent";
 
-type GameStatus = "playing" | "victory" | "defeat";
+type GameStatus = "playing" | GameOutcome;
 
 export class GameWorld {
   readonly player = new Player();
   readonly ball = new Ball(this.getBallSpawnPosition());
+  bricks: Brick[] = [];
+  private readonly events = new EventQueue<WorldEvent>();
   private readonly playerControl = new PlayerControlSystem();
-  private readonly ballPhysics = new BallPhysicsSystem();
+  private readonly ballPhysics = new BallPhysicsSystem(this.events);
+  private readonly brickSystem = new BrickSystem(this.events);
   private readonly levelSystem = new LevelSystem();
   private remainingLives = worldConfig.initialLives;
-  bricks: Brick[] = [];
   private gameStatus: GameStatus = "playing";
 
   constructor() {
+    this.events.subscribe(this.handleEvent);
     this.startCampaign();
+  }
+
+  onEvent(listener: (event: WorldEvent) => void): () => void {
+    return this.events.subscribe(listener);
   }
 
   update({
@@ -36,14 +50,23 @@ export class GameWorld {
       dtSeconds,
       bricks: this.bricks,
     });
+    this.events.flush();
     if (this.levelSystem.isCleared(this.bricks)) {
-      if (!this.startNextLevel()) {
-        this.gameStatus = "victory";
+      this.events.emit({
+        type: "levelCleared",
+        levelIndex: this.levelSystem.currentLevelIndex,
+      });
+      if (this.levelSystem.hasNextLevel()) {
+        this.startNextLevel();
+      } else {
+        this.finishGame("victory");
       }
+      this.events.flush();
       return;
     }
     if (!this.ball.alive) {
       this.handleBallLoss();
+      this.events.flush();
     }
   }
 
@@ -57,36 +80,45 @@ export class GameWorld {
 
   private startCampaign() {
     this.reset();
-    const bricks = this.levelSystem.loadNext();
-    if (bricks === null) {
+    if (!this.levelSystem.hasNextLevel()) {
       throw new Error("Campaign has no first level");
     }
 
-    this.bricks = bricks;
+    this.bricks = this.levelSystem.loadNext();
   }
 
   private handleBallLoss(): void {
     this.remainingLives--;
+    this.events.emit({
+      type: "lifeLost",
+      remainingLives: this.remainingLives,
+    });
 
     if (this.remainingLives === 0) {
-      this.gameStatus = "defeat";
+      this.finishGame("defeat");
       return;
     }
 
     this.resetPlayerAndBall();
   }
 
-  private startNextLevel(): boolean {
-    const bricks = this.levelSystem.loadNext();
-    if (bricks === null) {
-      return false;
+  private readonly handleEvent = (event: WorldEvent): void => {
+    if (event.type === "brickHit") {
+      this.brickSystem.handleHit(event.brick);
     }
-    this.bricks = bricks;
-    this.resetPlayerAndBall();
-    return true;
+  };
+
+  private finishGame(outcome: GameOutcome): void {
+    this.gameStatus = outcome;
+    this.events.emit({ type: "gameEnded", outcome });
   }
 
-  private reset() {
+  private startNextLevel(): void {
+    this.bricks = this.levelSystem.loadNext();
+    this.resetPlayerAndBall();
+  }
+
+  private reset(): void {
     this.levelSystem.reset();
     this.resetPlayerAndBall();
   }

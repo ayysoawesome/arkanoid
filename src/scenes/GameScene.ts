@@ -5,6 +5,7 @@ import {
   GameWorld,
   InputManager,
   Scene,
+  type WorldEvent,
 } from "@/core";
 import { WorldView } from "@/rendering";
 import { GameHud } from "@/ui/hud";
@@ -54,6 +55,16 @@ export class GameScene extends Scene {
   private readonly hud = new GameHud();
   private readonly defeatOverlay = new DefeatOverlay();
   private readonly victoryOverlay = new VictoryOverlay();
+  private readonly handleWorldEvent = (event: WorldEvent): void => {
+    if (event.type === "lifeLost") {
+      this.hud.setLives(event.remainingLives);
+    } else if (event.type === "gameEnded") {
+      this.defeatOverlay.visible = event.outcome === "defeat";
+      this.victoryOverlay.visible = event.outcome === "victory";
+      this.controlMode = "result";
+      this.controls.setBindings(this.resultBindings);
+    }
+  };
 
   constructor(
     inputManager: InputManager,
@@ -78,6 +89,7 @@ export class GameScene extends Scene {
       this.defeatOverlay,
       this.victoryOverlay,
     );
+    this.world.onEvent(this.handleWorldEvent);
   }
 
   resize(width: number, height: number): void {
@@ -98,21 +110,6 @@ export class GameScene extends Scene {
     this.victoryOverlay.resize(width, height);
   }
 
-  private syncOverlays() {
-    this.defeatOverlay.visible = this.world.status === "defeat";
-    this.victoryOverlay.visible = this.world.status === "victory";
-  }
-
-  private syncControls(): void {
-    const mode = this.world.status === "playing" ? "playing" : "result";
-    if (mode === this.controlMode) return;
-
-    this.controlMode = mode;
-    this.controls.setBindings(
-      mode === "playing" ? this.playingBindings : this.resultBindings,
-    );
-  }
-
   update(dtSeconds: number): void {
     this.direction = 0;
     this.launchRequested = false;
@@ -124,13 +121,10 @@ export class GameScene extends Scene {
       spacePressed: this.launchRequested,
       dtSeconds,
     });
-    this.hud.setLives(this.world.lives);
     this.worldView.sync({
       player: this.world.player,
       ball: this.world.ball,
       bricks: this.world.bricks,
     });
-    this.syncOverlays();
-    this.syncControls();
   }
 }
