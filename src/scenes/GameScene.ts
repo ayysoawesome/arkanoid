@@ -56,7 +56,7 @@ export class GameScene extends Scene {
   private readonly defeatOverlay = new DefeatOverlay();
   private readonly victoryOverlay = new VictoryOverlay();
   private readonly handleWorldEvent = (event: WorldEvent): void => {
-    if (event.type === "lifeLost") {
+    if (event.type === "lifeLost" || event.type === "lifeGained") {
       this.hud.setLives(event.remainingLives);
     } else if (event.type === "gameEnded") {
       this.defeatOverlay.visible = event.outcome === "defeat";

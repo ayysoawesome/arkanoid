@@ -1,5 +1,5 @@
 import { worldConfig } from "@/config";
-import { Ball, Brick, Player, PowerUp } from "@/entities";
+import { Ball, Brick, Player, PowerUp, type PowerUpKind } from "@/entities";
 import {
   BallPhysicsSystem,
   BrickSystem,
@@ -21,9 +21,9 @@ export class GameWorld {
   private readonly playerControl = new PlayerControlSystem();
   private readonly ballPhysics = new BallPhysicsSystem(this.events);
   private readonly brickSystem = new BrickSystem(this.events);
+  private readonly powerUpSystem = new PowerUpSystem(this.events);
   private readonly levelSystem = new LevelSystem();
   private remainingLives = worldConfig.initialLives;
-  private readonly powerUpSystem = new PowerUpSystem();
   private gameStatus: GameStatus = "playing";
 
   constructor() {
@@ -54,7 +54,12 @@ export class GameWorld {
       bricks: this.bricks,
     });
     this.events.flush();
-    this.powerUpSystem.update({ powerUpArr: this.powerUps, dtSeconds });
+    this.powerUpSystem.update({
+      powerUpArr: this.powerUps,
+      dtSeconds,
+      player: this.player,
+    });
+    this.events.flush();
     if (this.levelSystem.isCleared(this.bricks)) {
       this.events.emit({
         type: "levelCleared",
@@ -115,7 +120,21 @@ export class GameWorld {
     if (event.type === "brickDestroyed") {
       this.powerUpSystem.handleBrickDestroyed(event, this.powerUps);
     }
+
+    if (event.type === "powerUpCollected") {
+      this.applyPowerUp(event.kind);
+    }
   };
+
+  private applyPowerUp(kind: PowerUpKind): void {
+    if (kind !== "player") return;
+
+    this.remainingLives++;
+    this.events.emit({
+      type: "lifeGained",
+      remainingLives: this.remainingLives,
+    });
+  }
 
   private finishGame(outcome: GameOutcome): void {
     this.gameStatus = outcome;
