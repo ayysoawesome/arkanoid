@@ -73,6 +73,7 @@ export class WorldView extends Container {
 
       if (!view) {
         view = this.createBrickView(brick, this.assets);
+        view.pivot.set(Brick.WIDTH / 2, Brick.HEIGHT / 2);
         this.bricksView.addChild(view);
         this.brickViews.set(brick, view);
       }

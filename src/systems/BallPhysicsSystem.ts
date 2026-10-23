@@ -75,10 +75,10 @@ export class BallPhysicsSystem {
     for (const brick of bricks) {
       if (brick.destroyed) continue;
 
-      const left = brick.position.x;
-      const right = left + Brick.WIDTH;
-      const top = brick.position.y;
-      const bottom = top + Brick.HEIGHT;
+      const left = brick.position.x - Brick.WIDTH / 2;
+      const right = brick.position.x + Brick.WIDTH / 2;
+      const top = brick.position.y - Brick.HEIGHT / 2;
+      const bottom = brick.position.y + Brick.HEIGHT / 2;
 
       const closestX = Math.max(left, Math.min(ball.position.x, right));
       const closestY = Math.max(top, Math.min(ball.position.y, bottom));

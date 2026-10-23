@@ -25,8 +25,8 @@ export class LevelSystem {
       }
 
       const position = {
-        x: startX + column * (Brick.WIDTH + GAP),
-        y: START_Y + row * (Brick.HEIGHT + GAP),
+        x: startX + column * (Brick.WIDTH + GAP) + Brick.WIDTH / 2,
+        y: START_Y + row * (Brick.HEIGHT + GAP) + Brick.HEIGHT / 2,
       };
 
       return new Brick(position, kind);
