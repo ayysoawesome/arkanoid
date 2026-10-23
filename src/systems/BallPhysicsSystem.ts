@@ -122,10 +122,15 @@ export class BallPhysicsSystem {
       this.registerBounce(ball);
     }
 
+    // hit top wall
     if (ball.position.y < minY) {
       ball.position.y = minY;
       ball.velocity.y = Math.abs(ball.velocity.y);
       this.registerBounce(ball);
+
+      if (ball.currentSpeed < Ball.MAX_SPEED) {
+        this.setBallSpeed(ball, Ball.MAX_SPEED);
+      }
     }
   }
 
@@ -138,16 +143,18 @@ export class BallPhysicsSystem {
       return;
     }
 
-    ball.collisionsSinceIncrease = 0;
+    this.setBallSpeed(ball, ball.currentSpeed + Ball.SPEED_INCREMENT);
+  }
 
-    const nextSpeed = Math.min(
-      ball.currentSpeed + Ball.SPEED_INCREMENT,
-      Ball.MAX_SPEED,
-    );
+  private setBallSpeed(ball: Ball, speed: number): void {
+    const nextSpeed = Math.min(speed, Ball.MAX_SPEED);
+    if (nextSpeed === ball.currentSpeed) return;
+
     const scale = nextSpeed / ball.currentSpeed;
     ball.velocity.x *= scale;
     ball.velocity.y *= scale;
     ball.currentSpeed = nextSpeed;
+    ball.collisionsSinceIncrease = 0;
   }
 
   private setBallDirection(ball: Ball, angle: number) {
