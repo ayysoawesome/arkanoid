@@ -11,6 +11,7 @@ import { EventQueue } from "./EventQueue";
 import type { GameOutcome, WorldEvent } from "./WorldEvent";
 
 type GameStatus = "playing" | GameOutcome;
+const SLOW_FACTOR = 0.75;
 
 export class GameWorld {
   readonly player = new Player();
@@ -127,6 +128,11 @@ export class GameWorld {
   };
 
   private applyPowerUp(kind: PowerUpKind): void {
+    if (kind === "slow") {
+      this.ball.setSpeed(this.ball.currentSpeed * SLOW_FACTOR);
+      return;
+    }
+
     if (kind !== "player") return;
 
     this.remainingLives++;

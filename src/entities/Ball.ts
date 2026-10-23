@@ -1,6 +1,7 @@
 export class Ball {
   static readonly RADIUS = 3;
   static readonly INITIAL_SPEED = 120;
+  static readonly MIN_SPEED = 60;
   static readonly SPEED_INCREMENT = 12;
   static readonly MAX_SPEED = 180;
   static readonly COLLISIONS_PER_INCREASE = 10;
@@ -46,7 +47,7 @@ export class Ball {
   }
 
   setSpeed(speed: number): void {
-    const nextSpeed = Math.min(speed, Ball.MAX_SPEED);
+    const nextSpeed = Math.max(Ball.MIN_SPEED, Math.min(speed, Ball.MAX_SPEED));
     if (nextSpeed === this.currentSpeed) return;
 
     const scale = nextSpeed / this.currentSpeed;
