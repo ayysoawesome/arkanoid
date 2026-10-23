@@ -1,4 +1,4 @@
-import { worldConfig } from "@/config";
+import { exitBounds, fieldBounds, worldConfig } from "@/config";
 import {
   Ball,
   Brick,
@@ -38,6 +38,7 @@ export class GameWorld {
   private readonly levelSystem = new LevelSystem();
   private remainingLives = worldConfig.initialLives;
   private gameStatus: GameStatus = "playing";
+  private exitIsOpen = false;
 
   constructor() {
     this.events.subscribe(this.handleEvent);
@@ -59,7 +60,12 @@ export class GameWorld {
   }): void {
     if (this.gameStatus !== "playing") return;
     const hadAttachedBall = this.balls.some((ball) => ball.attached);
-    this.playerControl.update({ player: this.player, direction, dtSeconds });
+    this.playerControl.update({
+      player: this.player,
+      direction,
+      dtSeconds,
+      rightBoundary: this.exitIsOpen ? exitBounds.right : fieldBounds.right,
+    });
 
     for (const ball of this.balls) {
       this.ballPhysics.update({
@@ -87,16 +93,14 @@ export class GameWorld {
     });
     this.events.flush();
     if (this.levelSystem.isCleared(this.bricks)) {
-      this.events.emit({
-        type: "levelCleared",
-        levelIndex: this.levelSystem.currentLevelIndex,
-      });
-      if (this.levelSystem.hasNextLevel()) {
-        this.startNextLevel();
-      } else {
-        this.finishGame("victory");
-      }
-      this.events.flush();
+      this.completeLevel("cleared");
+      return;
+    }
+    if (
+      this.exitIsOpen &&
+      this.player.position.x + this.player.width / 2 >= exitBounds.right
+    ) {
+      this.completeLevel("exited");
       return;
     }
     if (this.balls.length === 0) {
@@ -111,6 +115,10 @@ export class GameWorld {
 
   get status(): GameStatus {
     return this.gameStatus;
+  }
+
+  get exitOpen(): boolean {
+    return this.exitIsOpen;
   }
 
   private startCampaign() {
@@ -180,6 +188,11 @@ export class GameWorld {
       return;
     }
 
+    if (kind === "break") {
+      this.exitIsOpen = true;
+      return;
+    }
+
     if (kind === "player") {
       this.remainingLives++;
       this.events.emit({
@@ -192,8 +205,23 @@ export class GameWorld {
 
   private finishGame(outcome: GameOutcome): void {
     this.gameStatus = outcome;
+    this.exitIsOpen = false;
     this.clearLaserShots();
     this.events.emit({ type: "gameEnded", outcome });
+  }
+
+  private completeLevel(reason: "cleared" | "exited"): void {
+    this.events.emit({
+      type: reason === "cleared" ? "levelCleared" : "levelExited",
+      levelIndex: this.levelSystem.currentLevelIndex,
+    });
+
+    if (this.levelSystem.hasNextLevel()) {
+      this.startNextLevel();
+    } else {
+      this.finishGame("victory");
+    }
+    this.events.flush();
   }
 
   private startNextLevel(): void {
@@ -210,6 +238,7 @@ export class GameWorld {
 
   private resetPlayerAndBalls(): void {
     this.clearLaserShots();
+    this.exitIsOpen = false;
     this.player.reset();
     this.balls.length = 0;
     this.balls.push(new Ball(this.getBallSpawnPosition()));

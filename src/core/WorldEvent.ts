@@ -24,6 +24,7 @@ export type WorldEvent =
   | BrickHitEvent
   | BrickDestroyedEvent
   | { type: "levelCleared"; levelIndex: number }
+  | { type: "levelExited"; levelIndex: number }
   | { type: "lifeLost"; remainingLives: number }
   | { type: "lifeGained"; remainingLives: number }
   | { type: "gameEnded"; outcome: GameOutcome };

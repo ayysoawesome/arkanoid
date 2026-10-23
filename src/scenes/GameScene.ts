@@ -76,11 +76,14 @@ export class GameScene extends Scene {
     this.controls = new Controls(inputManager, this.playingBindings);
 
     this.worldView = new WorldView(
-      this.world.player,
-      this.world.balls,
-      this.world.bricks,
-      this.world.powerUps,
-      this.world.laserShots,
+      {
+        player: this.world.player,
+        balls: this.world.balls,
+        bricks: this.world.bricks,
+        powerUps: this.world.powerUps,
+        laserShots: this.world.laserShots,
+        exitOpen: this.world.exitOpen,
+      },
       assets,
     );
     this.hud.setLives(this.world.lives);
@@ -129,6 +132,7 @@ export class GameScene extends Scene {
       bricks: this.world.bricks,
       powerUps: this.world.powerUps,
       laserShots: this.world.laserShots,
+      exitOpen: this.world.exitOpen,
     });
   }
 }

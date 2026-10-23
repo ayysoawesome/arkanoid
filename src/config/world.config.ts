@@ -3,6 +3,7 @@ interface IWorldConfig {
   height: number;
   borderWidth: number;
   initialLives: number;
+  exit: { width: number; height: number };
 }
 
 export const worldConfig: IWorldConfig = {
@@ -10,11 +11,19 @@ export const worldConfig: IWorldConfig = {
   height: 256,
   borderWidth: 8,
   initialLives: 1,
+  exit: { width: 24, height: 24 },
 } as const;
 
 export const fieldBounds = {
   left: worldConfig.borderWidth,
   right: worldConfig.width - worldConfig.borderWidth,
   top: worldConfig.borderWidth,
+  bottom: worldConfig.height,
+} as const;
+
+export const exitBounds = {
+  left: worldConfig.width - worldConfig.exit.width,
+  right: worldConfig.width,
+  top: worldConfig.height - worldConfig.exit.height,
   bottom: worldConfig.height,
 } as const;

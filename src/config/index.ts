@@ -1,2 +1,2 @@
-export { worldConfig, fieldBounds } from "./world.config";
+export { worldConfig, fieldBounds, exitBounds } from "./world.config";
 export { gameConfig } from "./game.config";

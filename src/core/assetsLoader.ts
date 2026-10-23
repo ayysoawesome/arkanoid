@@ -5,6 +5,7 @@ const gameAssetPaths = {
   laserShot: "/player/laser-shot.png",
   ball: "ball/ball.png",
   field1: "/fields/field-01.png",
+  exit: "/fields/exit.png",
   brickSilver: "bricks/silver-01.png",
   brickGold: "bricks/gold-01.png",
 } as const;

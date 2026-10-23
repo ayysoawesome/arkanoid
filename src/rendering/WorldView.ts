@@ -1,4 +1,4 @@
-import { worldConfig } from "@/config";
+import { exitBounds, worldConfig } from "@/config";
 import { GameAssets } from "@/core";
 import { Ball, Brick, BrickKind, LaserShot, Player, PowerUp } from "@/entities";
 import { AnimatedSprite, Container, Graphics, Sprite } from "pixi.js";
@@ -22,6 +22,7 @@ type WorldViewState = {
   readonly bricks: readonly Brick[];
   readonly powerUps: readonly PowerUp[];
   readonly laserShots: readonly LaserShot[];
+  readonly exitOpen: boolean;
 };
 
 export class WorldView extends Container {
@@ -36,13 +37,10 @@ export class WorldView extends Container {
   private readonly powerUpViews = new Map<PowerUp, AnimatedSprite>();
   private readonly laserShotsView = new Container();
   private readonly laserShotViews = new Map<LaserShot, Sprite>();
+  private readonly exitView: Sprite;
 
   constructor(
-    player: Player,
-    balls: readonly Ball[],
-    bricks: Brick[],
-    powerUps: PowerUp[],
-    laserShots: LaserShot[],
+    state: WorldViewState,
     private readonly assets: GameAssets,
   ) {
     super();
@@ -51,6 +49,10 @@ export class WorldView extends Container {
     fieldView.anchor.set(0, 0);
     fieldView.position.set(0, 0);
     fieldView.setSize(worldConfig.width, worldConfig.height);
+
+    this.exitView = new Sprite(assets.exit);
+    this.exitView.position.set(exitBounds.left, exitBounds.top);
+    this.exitView.setSize(worldConfig.exit.width, worldConfig.exit.height);
 
     this.playerView = new AnimatedSprite({
       textures: assets.normalLights,
@@ -69,6 +71,7 @@ export class WorldView extends Container {
 
     this.addChild(
       fieldView,
+      this.exitView,
       this.bricksView,
       this.powerUpsView,
       this.laserShotsView,
@@ -76,10 +79,18 @@ export class WorldView extends Container {
       this.laserPlayerView,
       this.ballsView,
     );
-    this.sync({ player, balls, bricks, powerUps, laserShots });
+    this.sync(state);
   }
 
-  sync({ player, balls, bricks, powerUps, laserShots }: WorldViewState): void {
+  sync({
+    player,
+    balls,
+    bricks,
+    powerUps,
+    laserShots,
+    exitOpen,
+  }: WorldViewState): void {
+    this.exitView.visible = exitOpen;
     this.syncPlayer(player);
     this.syncBalls(balls);
     this.syncBricks(bricks);
