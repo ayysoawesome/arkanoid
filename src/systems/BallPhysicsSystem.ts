@@ -63,7 +63,7 @@ export class BallPhysicsSystem {
 
     ball.position.y = playerTop - ball.radius;
     this.setBallDirection(ball, bounceAngle);
-    this.registerBounce(ball);
+    ball.registerBounce();
   }
 
   private resolveBrickCollision(
@@ -101,7 +101,7 @@ export class BallPhysicsSystem {
         ball.velocity.y *= -1;
       }
 
-      this.registerBounce(ball);
+      ball.registerBounce();
 
       return;
     }
@@ -115,46 +115,23 @@ export class BallPhysicsSystem {
     if (ball.position.x < minX) {
       ball.position.x = minX;
       ball.velocity.x = Math.abs(ball.velocity.x);
-      this.registerBounce(ball);
+      ball.registerBounce();
     } else if (ball.position.x > maxX) {
       ball.position.x = maxX;
       ball.velocity.x = -Math.abs(ball.velocity.x);
-      this.registerBounce(ball);
+      ball.registerBounce();
     }
 
     // hit top wall
     if (ball.position.y < minY) {
       ball.position.y = minY;
       ball.velocity.y = Math.abs(ball.velocity.y);
-      this.registerBounce(ball);
+      ball.registerBounce();
 
       if (ball.currentSpeed < Ball.MAX_SPEED) {
-        this.setBallSpeed(ball, Ball.MAX_SPEED);
+        ball.setSpeed(Ball.MAX_SPEED);
       }
     }
-  }
-
-  private registerBounce(ball: Ball): void {
-    if (ball.attached || !ball.alive) return;
-    if (ball.currentSpeed >= Ball.MAX_SPEED) return;
-
-    ball.collisionsSinceIncrease++;
-    if (ball.collisionsSinceIncrease < Ball.COLLISIONS_PER_INCREASE) {
-      return;
-    }
-
-    this.setBallSpeed(ball, ball.currentSpeed + Ball.SPEED_INCREMENT);
-  }
-
-  private setBallSpeed(ball: Ball, speed: number): void {
-    const nextSpeed = Math.min(speed, Ball.MAX_SPEED);
-    if (nextSpeed === ball.currentSpeed) return;
-
-    const scale = nextSpeed / ball.currentSpeed;
-    ball.velocity.x *= scale;
-    ball.velocity.y *= scale;
-    ball.currentSpeed = nextSpeed;
-    ball.collisionsSinceIncrease = 0;
   }
 
   private setBallDirection(ball: Ball, angle: number) {

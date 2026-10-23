@@ -6,7 +6,7 @@ type GameStatus = "playing" | "victory" | "defeat";
 
 export class GameWorld {
   readonly player = new Player();
-  readonly ball = new Ball(this.player);
+  readonly ball = new Ball(this.getBallSpawnPosition());
   private readonly playerControl = new PlayerControlSystem();
   private readonly ballPhysics = new BallPhysicsSystem();
   private readonly levelSystem = new LevelSystem();
@@ -73,8 +73,7 @@ export class GameWorld {
       return;
     }
 
-    this.player.reset();
-    this.ball.reset(this.player);
+    this.resetPlayerAndBall();
   }
 
   private startNextLevel(): boolean {
@@ -83,14 +82,24 @@ export class GameWorld {
       return false;
     }
     this.bricks = bricks;
-    this.player.reset();
-    this.ball.reset(this.player);
+    this.resetPlayerAndBall();
     return true;
   }
 
   private reset() {
     this.levelSystem.reset();
+    this.resetPlayerAndBall();
+  }
+
+  private resetPlayerAndBall(): void {
     this.player.reset();
-    this.ball.reset(this.player);
+    this.ball.reset(this.getBallSpawnPosition());
+  }
+
+  private getBallSpawnPosition(): { x: number; y: number } {
+    return {
+      x: this.player.position.x,
+      y: this.player.position.y - this.player.height / 2 - Ball.RADIUS,
+    };
   }
 }

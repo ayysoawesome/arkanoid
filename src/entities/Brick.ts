@@ -13,23 +13,31 @@ export type BrickKind =
 export class Brick {
   static readonly WIDTH: number = 16;
   static readonly HEIGHT: number = 8;
-  health: number = 1;
-  destroyed: boolean = false;
+  private remainingHealth = 1;
+  private isDestroyed = false;
+
+  get health(): number {
+    return this.remainingHealth;
+  }
+
+  get destroyed(): boolean {
+    return this.isDestroyed;
+  }
 
   constructor(
     readonly position: { x: number; y: number },
     readonly kind: BrickKind,
   ) {
     if (this.kind === "silver") {
-      this.health = 2;
+      this.remainingHealth = 2;
     }
   }
 
-  hit() {
+  hit(): void {
     if (this.destroyed || this.kind === "gold") return;
 
-    if (this.health <= 1) this.destroyed = true;
+    if (this.remainingHealth <= 1) this.isDestroyed = true;
 
-    this.health--;
+    this.remainingHealth--;
   }
 }
