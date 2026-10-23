@@ -4,13 +4,16 @@ import { GameScene } from "@/scenes/GameScene";
 import { InputManager } from "./InputManager";
 import { gameConfig } from "@/config";
 import { GameAssets, loadGameAssets } from "./assetsLoader";
-import { MenuScene } from "@/scenes";
+import { ControlsScene, MenuScene } from "@/scenes";
+import type { PlayerInputMode } from "./PlayerInputMode";
 
 export class Game {
   readonly app = new Application();
   private sceneManager!: SceneManager;
   private inputManager!: InputManager;
   private accumulator: number = 0;
+  private playerInputMode: PlayerInputMode = "mouse";
+  private menuSelection: 0 | 1 = 0;
 
   private onRendererResize = (width: number, height: number): void => {
     this.sceneManager?.resize(width, height);
@@ -57,14 +60,47 @@ export class Game {
   }
 
   private registerScenes(assets: GameAssets): void {
-    const handleReturnToMenu = () => this.sceneManager.show("menu");
+    const handleReturnToMenu = () => {
+      this.menuSelection = 0;
+      this.sceneManager.show("menu");
+    };
     this.sceneManager.register("game", () => {
-      return new GameScene(this.inputManager, assets, handleReturnToMenu);
+      return new GameScene(
+        this.inputManager,
+        assets,
+        this.playerInputMode,
+        handleReturnToMenu,
+      );
     });
-    const handleGameStart = () => this.sceneManager.show("game");
+    const handleGameStart = () => {
+      this.menuSelection = 0;
+      this.sceneManager.show("game");
+    };
+    const handleOpenControls = () => {
+      this.menuSelection = 1;
+      this.sceneManager.show("controls");
+    };
     this.sceneManager.register(
       "menu",
-      () => new MenuScene(this.inputManager, handleGameStart),
+      () =>
+        new MenuScene(
+          this.inputManager,
+          handleGameStart,
+          handleOpenControls,
+          this.menuSelection,
+        ),
+    );
+    this.sceneManager.register(
+      "controls",
+      () =>
+        new ControlsScene(
+          this.inputManager,
+          this.playerInputMode,
+          (mode) => {
+            this.playerInputMode = mode;
+          },
+          () => this.sceneManager.show("menu"),
+        ),
     );
   }
 

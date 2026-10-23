@@ -4,6 +4,7 @@ import {
   GameAssets,
   GameWorld,
   InputManager,
+  type PlayerInputMode,
   Scene,
   type WorldEvent,
 } from "@/core";
@@ -11,6 +12,7 @@ import { WorldView } from "@/rendering";
 import { GameHud } from "@/ui/hud";
 import { worldConfig } from "@/config";
 import { DefeatOverlay, VictoryOverlay } from "@/ui/overlays";
+import { Rectangle } from "pixi.js";
 
 type GameAction = "moveLeft" | "moveRight" | "action" | "returnToMenu";
 type ControlMode = "playing" | "result";
@@ -21,6 +23,8 @@ export class GameScene extends Scene {
   private controlMode: ControlMode = "playing";
   private direction = 0;
   private actionRequested = false;
+  private mouseX: number | null = null;
+  private pendingMouseAction = false;
   private readonly playingBindings: ControlBindings<GameAction> = {
     moveLeft: {
       key: "ArrowLeft",
@@ -78,11 +82,30 @@ export class GameScene extends Scene {
   constructor(
     inputManager: InputManager,
     assets: GameAssets,
+    private readonly inputMode: PlayerInputMode,
     private readonly onReturnToMenu: () => void,
   ) {
     super();
 
-    this.controls = new Controls(inputManager, this.playingBindings);
+    this.controls = new Controls(
+      inputManager,
+      inputMode === "keyboard" ? this.playingBindings : {},
+    );
+
+    if (inputMode === "mouse") {
+      this.eventMode = "static";
+      this.on("globalmousemove", (event) => {
+        this.mouseX = this.worldView.toLocal(event.global).x;
+      });
+      this.on("pointerdown", (event) => {
+        if (event.button !== 0 || event.pointerType !== "mouse") return;
+        if (this.controlMode === "result") {
+          this.onReturnToMenu();
+        } else {
+          this.pendingMouseAction = true;
+        }
+      });
+    }
 
     this.worldView = new WorldView(
       {
@@ -96,6 +119,9 @@ export class GameScene extends Scene {
       },
       assets,
     );
+    const returnHint = inputMode === "mouse" ? "CLICK - MENU" : "SPACE - MENU";
+    this.defeatOverlay.setReturnHint(returnHint);
+    this.victoryOverlay.setReturnHint(returnHint);
     this.hud.setLives(this.world.lives);
     this.hud.setScore(this.world.score);
     this.hud.setRound(this.world.currentLevelIndex);
@@ -111,6 +137,10 @@ export class GameScene extends Scene {
 
   resize(width: number, height: number): void {
     if (width <= 0 || height <= 0) return;
+
+    if (this.inputMode === "mouse") {
+      this.hitArea = new Rectangle(0, 0, width, height);
+    }
 
     const scale = height / worldConfig.height;
 
@@ -130,12 +160,14 @@ export class GameScene extends Scene {
 
   update(dtSeconds: number): void {
     this.direction = 0;
-    this.actionRequested = false;
+    this.actionRequested = this.pendingMouseAction;
+    this.pendingMouseAction = false;
     this.controls.update();
     if (this.controlMode === "result") return;
 
     this.world.update({
       direction: this.direction,
+      targetX: this.inputMode === "mouse" ? this.mouseX : null,
       actionPressed: this.actionRequested,
       dtSeconds,
     });

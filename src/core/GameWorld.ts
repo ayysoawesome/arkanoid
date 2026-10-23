@@ -57,10 +57,12 @@ export class GameWorld {
 
   update({
     direction,
+    targetX,
     actionPressed,
     dtSeconds,
   }: {
     direction: number;
+    targetX: number | null;
     actionPressed: boolean;
     dtSeconds: number;
   }): void {
@@ -69,6 +71,7 @@ export class GameWorld {
     this.playerControl.update({
       player: this.player,
       direction,
+      targetX,
       dtSeconds,
       rightBoundary: this.exitIsOpen ? exitBounds.right : fieldBounds.right,
     });

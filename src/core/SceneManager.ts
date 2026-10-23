@@ -6,7 +6,7 @@ export abstract class Scene extends Container {
 }
 
 type SceneFactory = () => Scene;
-export type SceneId = "menu" | "game" | "gameover";
+export type SceneId = "menu" | "controls" | "game" | "gameover";
 
 export class SceneManager {
   private readonly factories = new Map<SceneId, SceneFactory>();

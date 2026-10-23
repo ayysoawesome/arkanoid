@@ -1,4 +1,5 @@
 import { Controls, InputManager, Scene } from "@/core";
+import { createMenuLabel } from "@/ui/menu/createMenuLabel";
 import { Container, Text } from "pixi.js";
 
 type MenuAction = "previous" | "next" | "confirm";
@@ -6,41 +7,20 @@ type MenuAction = "previous" | "next" | "confirm";
 export class MenuScene extends Scene {
   private readonly controls: Controls<MenuAction>;
   private readonly menuContainer = new Container();
-  private readonly playLabel = new Text({
-    text: "PLAY",
-    style: {
-      fontFamily: "PixelOperator8",
-      fontSize: 32,
-      fill: "#ffffff",
-    },
-  });
-
-  private readonly controlsLabel = new Text({
-    text: "CONTROLS",
-    style: {
-      fontFamily: "PixelOperator8",
-      fontSize: 32,
-      fill: "#ffffff",
-    },
-  });
-
-  private readonly selectionMarker = new Text({
-    text: ">",
-    style: {
-      fontFamily: "PixelOperator8",
-      fontSize: 32,
-      fill: "#ffffff",
-    },
-  });
-
+  private readonly playLabel = createMenuLabel("PLAY");
+  private readonly controlsLabel = createMenuLabel("CONTROLS");
+  private readonly selectionMarker = createMenuLabel(">");
   private readonly options = [this.playLabel, this.controlsLabel];
-  private selectedIndex = 0;
+  private selectedIndex: number;
 
   constructor(
     inputManager: InputManager,
     private readonly onGameStart: () => void,
+    private readonly onOpenControls: () => void,
+    initialSelection = 0,
   ) {
     super();
+    this.selectedIndex = initialSelection;
 
     this.controls = new Controls(inputManager, {
       previous: {
@@ -60,47 +40,56 @@ export class MenuScene extends Scene {
       },
     });
 
-    this.playLabel.anchor.set(0.5);
-    this.controlsLabel.anchor.set(0.5);
-    this.selectionMarker.anchor.set(0.5);
-
     const rowStep = this.playLabel.height + 12;
-
-    this.playLabel.position.set(0, -rowStep / 2);
-    this.controlsLabel.position.set(0, rowStep / 2);
-
-    const widestLabel = Math.max(
-      this.playLabel.width,
-      this.controlsLabel.width,
-    );
-
-    this.selectionMarker.position.set(
-      -widestLabel / 2 - this.selectionMarker.width / 2 - 8,
-      this.playLabel.y,
-    );
-
+    this.playLabel.y = -rowStep / 2;
+    this.controlsLabel.y = rowStep / 2;
+    this.configureOption(this.playLabel, 0, this.onGameStart);
+    this.configureOption(this.controlsLabel, 1, this.onOpenControls);
     this.menuContainer.addChild(
       this.playLabel,
       this.controlsLabel,
       this.selectionMarker,
     );
-
     this.addChild(this.menuContainer);
+    this.updateSelectionMarker();
   }
 
   resize(width: number, height: number): void {
     this.menuContainer.position.set(width / 2, height / 2);
   }
 
+  private configureOption(
+    label: Text,
+    index: number,
+    activate: () => void,
+  ): void {
+    label.eventMode = "static";
+    label.cursor = "pointer";
+    label.on("pointerover", () => {
+      this.selectedIndex = index;
+      this.updateSelectionMarker();
+    });
+    label.on("pointertap", activate);
+  }
+
   private moveSelection(direction: number): void {
     this.selectedIndex =
       (this.selectedIndex + direction + this.options.length) %
       this.options.length;
-    this.selectionMarker.y = this.options[this.selectedIndex].y;
+    this.updateSelectionMarker();
+  }
+
+  private updateSelectionMarker(): void {
+    const widestLabel = Math.max(...this.options.map((label) => label.width));
+    this.selectionMarker.position.set(
+      -widestLabel / 2 - this.selectionMarker.width / 2 - 8,
+      this.options[this.selectedIndex].y,
+    );
   }
 
   private confirmSelection(): void {
     if (this.selectedIndex === 0) this.onGameStart();
+    else this.onOpenControls();
   }
 
   update(): void {

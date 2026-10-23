@@ -30,6 +30,10 @@ export class VictoryOverlay extends Container {
     this.addChild(this.shade, this.title, this.hint);
   }
 
+  setReturnHint(text: string): void {
+    this.hint.text = text;
+  }
+
   resize(width: number, height: number): void {
     this.shade
       .clear()
