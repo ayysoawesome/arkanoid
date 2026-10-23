@@ -10,6 +10,7 @@ export class Ball {
   private collisionsSinceIncrease = 0;
   private speed = Ball.INITIAL_SPEED;
   private attachmentOffsetX = 0;
+  private hasBeenReleased = false;
   position: { x: number; y: number };
   velocity = { x: 0, y: 0 };
   attached = true;
@@ -27,6 +28,10 @@ export class Ball {
     return this.attachmentOffsetX;
   }
 
+  get isFirstRelease(): boolean {
+    return !this.hasBeenReleased;
+  }
+
   attach(offsetX: number): void {
     this.attached = true;
     this.attachmentOffsetX = offsetX;
@@ -37,6 +42,7 @@ export class Ball {
   release(): void {
     this.attached = false;
     this.attachmentOffsetX = 0;
+    this.hasBeenReleased = true;
   }
 
   reset(position: { x: number; y: number }): void {
@@ -45,6 +51,7 @@ export class Ball {
     this.velocity.y = 0;
     this.attached = true;
     this.attachmentOffsetX = 0;
+    this.hasBeenReleased = false;
     this.alive = true;
     this.collisionsSinceIncrease = 0;
 

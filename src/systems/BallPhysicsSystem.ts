@@ -83,14 +83,12 @@ export class BallPhysicsSystem {
       return;
     }
 
-    const hitOffset =
-      (ball.position.x - player.position.x) / (player.width / 2);
-
-    const clampedOffset = Math.max(-1, Math.min(1, hitOffset));
-    const bounceAngle = clampedOffset * MAX_BOUNCE_ANGLE;
-
     ball.position.y = playerTop - ball.radius;
-    this.setBallDirection(ball, bounceAngle);
+    this.setBallDirectionFromPlayerOffset(
+      ball,
+      player,
+      ball.position.x - player.position.x,
+    );
     ball.registerBounce();
   }
 
@@ -201,6 +199,18 @@ export class BallPhysicsSystem {
     ball.velocity.y = -ball.currentSpeed * Math.cos(angle);
   }
 
+  private setBallDirectionFromPlayerOffset(
+    ball: Ball,
+    player: Player,
+    offsetX: number,
+  ) {
+    const normalizedOffset = Math.max(
+      -1,
+      Math.min(1, offsetX / (player.width / 2)),
+    );
+    this.setBallDirection(ball, normalizedOffset * MAX_BOUNCE_ANGLE);
+  }
+
   private updateAttachedBall(
     ball: Ball,
     player: Player,
@@ -210,12 +220,18 @@ export class BallPhysicsSystem {
     ball.position.y = player.position.y - player.height / 2 - ball.radius;
 
     if (launchRequested) {
-      this.launchBall(ball);
+      this.launchBall(ball, player);
     }
   }
 
-  private launchBall(ball: Ball) {
+  private launchBall(ball: Ball, player: Player) {
+    const isFirstRelease = ball.isFirstRelease;
+    const offsetX = ball.attachedOffsetX;
     ball.release();
-    this.setBallDirection(ball, LAUNCH_ANGLE);
+    if (isFirstRelease) {
+      this.setBallDirection(ball, LAUNCH_ANGLE);
+    } else {
+      this.setBallDirectionFromPlayerOffset(ball, player, offsetX);
+    }
   }
 }
