@@ -14,6 +14,7 @@ import {
   LevelSystem,
   PlayerControlSystem,
   PowerUpSystem,
+  ScoreSystem,
 } from "@/systems";
 import { EventQueue } from "./EventQueue";
 import type { GameOutcome, WorldEvent } from "./WorldEvent";
@@ -36,6 +37,7 @@ export class GameWorld {
   private readonly powerUpSystem = new PowerUpSystem(this.events);
   private readonly laserSystem = new LaserSystem(this.events);
   private readonly levelSystem = new LevelSystem();
+  private readonly scoreSystem = new ScoreSystem(this.events);
   private remainingLives = worldConfig.initialLives;
   private gameStatus: GameStatus = "playing";
   private exitIsOpen = false;
@@ -113,6 +115,10 @@ export class GameWorld {
     return this.remainingLives;
   }
 
+  get score(): number {
+    return this.scoreSystem.score;
+  }
+
   get status(): GameStatus {
     return this.gameStatus;
   }
@@ -152,10 +158,15 @@ export class GameWorld {
     }
 
     if (event.type === "brickDestroyed") {
+      this.scoreSystem.awardBrick(
+        event.brickKind,
+        this.levelSystem.currentLevelIndex,
+      );
       this.powerUpSystem.handleBrickDestroyed(event, this.powerUps);
     }
 
     if (event.type === "powerUpCollected") {
+      this.scoreSystem.awardCapsule();
       this.applyPowerUp(event.kind);
     }
   };
@@ -232,6 +243,7 @@ export class GameWorld {
 
   private reset(): void {
     this.levelSystem.reset();
+    this.scoreSystem.reset();
     this.clearPowerUps();
     this.resetPlayerAndBalls();
   }

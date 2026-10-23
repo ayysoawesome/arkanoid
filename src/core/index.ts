@@ -9,6 +9,7 @@ export type {
   BrickHitEvent,
   BrickDestroyedEvent,
   PowerUpCollectedEvent,
+  ScoreChangedEvent,
   WorldEvent,
 } from "./WorldEvent";
 export { type EventWriter, EventQueue } from "./EventQueue";

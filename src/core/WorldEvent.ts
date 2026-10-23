@@ -19,10 +19,16 @@ export type PowerUpCollectedEvent = {
   kind: PowerUpKind;
 };
 
+export type ScoreChangedEvent = {
+  type: "scoreChanged";
+  score: number;
+};
+
 export type WorldEvent =
   | PowerUpCollectedEvent
   | BrickHitEvent
   | BrickDestroyedEvent
+  | ScoreChangedEvent
   | { type: "levelCleared"; levelIndex: number }
   | { type: "levelExited"; levelIndex: number }
   | { type: "lifeLost"; remainingLives: number }
