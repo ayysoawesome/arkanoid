@@ -29,6 +29,7 @@ export type WorldEvent =
   | BrickHitEvent
   | BrickDestroyedEvent
   | ScoreChangedEvent
+  | { type: "levelStarted"; levelIndex: number }
   | { type: "levelCleared"; levelIndex: number }
   | { type: "levelExited"; levelIndex: number }
   | { type: "lifeLost"; remainingLives: number }

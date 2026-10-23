@@ -119,6 +119,10 @@ export class GameWorld {
     return this.scoreSystem.score;
   }
 
+  get currentLevelIndex(): number {
+    return this.levelSystem.currentLevelIndex;
+  }
+
   get status(): GameStatus {
     return this.gameStatus;
   }
@@ -134,6 +138,10 @@ export class GameWorld {
     }
 
     this.bricks = this.levelSystem.loadNext();
+    this.events.emit({
+      type: "levelStarted",
+      levelIndex: this.levelSystem.currentLevelIndex,
+    });
   }
 
   private handleBallLoss(): void {
@@ -239,6 +247,10 @@ export class GameWorld {
     this.clearPowerUps();
     this.bricks = this.levelSystem.loadNext();
     this.resetPlayerAndBalls();
+    this.events.emit({
+      type: "levelStarted",
+      levelIndex: this.levelSystem.currentLevelIndex,
+    });
   }
 
   private reset(): void {

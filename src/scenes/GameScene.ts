@@ -58,6 +58,10 @@ export class GameScene extends Scene {
   private readonly handleWorldEvent = (event: WorldEvent): void => {
     if (event.type === "lifeLost" || event.type === "lifeGained") {
       this.hud.setLives(event.remainingLives);
+    } else if (event.type === "scoreChanged") {
+      this.hud.setScore(event.score);
+    } else if (event.type === "levelStarted") {
+      this.hud.setRound(event.levelIndex);
     } else if (event.type === "gameEnded") {
       this.defeatOverlay.visible = event.outcome === "defeat";
       this.victoryOverlay.visible = event.outcome === "victory";
@@ -87,6 +91,8 @@ export class GameScene extends Scene {
       assets,
     );
     this.hud.setLives(this.world.lives);
+    this.hud.setScore(this.world.score);
+    this.hud.setRound(this.world.currentLevelIndex);
 
     this.addChild(
       this.worldView,
@@ -110,6 +116,7 @@ export class GameScene extends Scene {
     this.worldView.scale.set(scale);
     this.worldView.position.set(0, 0);
     this.hud.position.set(gameField.width, 0);
+    this.hud.resize(height);
 
     this.defeatOverlay.resize(width, height);
     this.victoryOverlay.resize(width, height);
