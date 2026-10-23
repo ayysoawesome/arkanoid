@@ -1,7 +1,7 @@
 import { exitBounds, worldConfig } from "@/config";
 import { GameAssets } from "@/core";
 import { Ball, Brick, BrickKind, LaserShot, Player, PowerUp } from "@/entities";
-import { AnimatedSprite, Container, Graphics, Sprite } from "pixi.js";
+import { AnimatedSprite, Container, Graphics, Sprite, Texture } from "pixi.js";
 
 type ColoredBrickKind = Exclude<BrickKind, "silver" | "gold">;
 
@@ -98,6 +98,14 @@ export class WorldView extends Container {
     this.syncLaserShots(laserShots);
   }
 
+  playBrickHit(brick: Brick): void {
+    const view = this.brickViews.get(brick);
+    if (!(view instanceof AnimatedSprite)) return;
+
+    view.visible = true;
+    view.gotoAndPlay(0);
+  }
+
   private syncLaserShots(laserShots: readonly LaserShot[]): void {
     const currentShots = new Set(laserShots);
 
@@ -174,6 +182,9 @@ export class WorldView extends Container {
       }
 
       view.position.set(brick.position.x, brick.position.y);
+      if (brick.destroyed && view instanceof AnimatedSprite && view.playing) {
+        view.stop();
+      }
       view.visible = !brick.destroyed;
     }
   }
@@ -249,15 +260,31 @@ export class WorldView extends Container {
 
   private createBrickView(brick: Brick, assets: GameAssets) {
     if (brick.kind === "silver") {
-      return new Sprite(assets.brickSilver);
+      return this.createMetalBrickView(brick, assets.brickHitFrames.silver);
     }
 
     if (brick.kind === "gold") {
-      return new Sprite(assets.brickGold);
+      return this.createMetalBrickView(brick, assets.brickHitFrames.gold);
     }
 
     return new Graphics()
       .rect(0, 0, Brick.WIDTH, Brick.HEIGHT)
       .fill(BRICK_COLORS[brick.kind]);
+  }
+
+  private createMetalBrickView(
+    brick: Brick,
+    frames: readonly Texture[],
+  ): AnimatedSprite {
+    const view = new AnimatedSprite({
+      textures: [...frames, frames[0]],
+      animationSpeed: 0.25,
+      loop: false,
+    });
+    view.onComplete = () => {
+      view.gotoAndStop(0);
+      view.visible = !brick.destroyed;
+    };
+    return view;
   }
 }
