@@ -20,10 +20,12 @@ import type { GameOutcome, WorldEvent } from "./WorldEvent";
 
 type GameStatus = "playing" | GameOutcome;
 const SLOW_FACTOR = 0.75;
+const MAX_BALLS = 3;
+const DISRUPT_ANGLE = (20 * Math.PI) / 180;
 
 export class GameWorld {
   readonly player = new Player();
-  readonly ball = new Ball(this.getBallSpawnPosition());
+  readonly balls: Ball[] = [];
   bricks: Brick[] = [];
   readonly powerUps: PowerUp[] = [];
   readonly laserShots: LaserShot[] = [];
@@ -56,21 +58,25 @@ export class GameWorld {
     dtSeconds: number;
   }): void {
     if (this.gameStatus !== "playing") return;
-    const fireRequested = actionPressed && !this.ball.attached;
+    const hadAttachedBall = this.balls.some((ball) => ball.attached);
     this.playerControl.update({ player: this.player, direction, dtSeconds });
-    this.ballPhysics.update({
-      player: this.player,
-      ball: this.ball,
-      launchRequested: actionPressed,
-      dtSeconds,
-      bricks: this.bricks,
-    });
+
+    for (const ball of this.balls) {
+      this.ballPhysics.update({
+        player: this.player,
+        ball,
+        launchRequested: actionPressed,
+        dtSeconds,
+        bricks: this.bricks,
+      });
+    }
+    this.removeLostBalls();
     this.events.flush();
     this.laserSystem.update({
       shots: this.laserShots,
       player: this.player,
       bricks: this.bricks,
-      fireRequested: fireRequested && this.ball.alive,
+      fireRequested: actionPressed && !hadAttachedBall && this.balls.length > 0,
       dtSeconds,
     });
     this.events.flush();
@@ -93,7 +99,7 @@ export class GameWorld {
       this.events.flush();
       return;
     }
-    if (!this.ball.alive) {
+    if (this.balls.length === 0) {
       this.handleBallLoss();
       this.events.flush();
     }
@@ -129,7 +135,7 @@ export class GameWorld {
       return;
     }
 
-    this.resetPlayerAndBall();
+    this.resetPlayerAndBalls();
   }
 
   private readonly handleEvent = (event: WorldEvent): void => {
@@ -163,7 +169,14 @@ export class GameWorld {
     }
 
     if (kind === "slow") {
-      this.ball.setSpeed(this.ball.currentSpeed * SLOW_FACTOR);
+      for (const ball of this.balls) {
+        ball.setSpeed(ball.currentSpeed * SLOW_FACTOR);
+      }
+      return;
+    }
+
+    if (kind === "disrupt") {
+      this.splitBall();
       return;
     }
 
@@ -186,19 +199,40 @@ export class GameWorld {
   private startNextLevel(): void {
     this.clearPowerUps();
     this.bricks = this.levelSystem.loadNext();
-    this.resetPlayerAndBall();
+    this.resetPlayerAndBalls();
   }
 
   private reset(): void {
     this.levelSystem.reset();
     this.clearPowerUps();
-    this.resetPlayerAndBall();
+    this.resetPlayerAndBalls();
   }
 
-  private resetPlayerAndBall(): void {
+  private resetPlayerAndBalls(): void {
     this.clearLaserShots();
     this.player.reset();
-    this.ball.reset(this.getBallSpawnPosition());
+    this.balls.length = 0;
+    this.balls.push(new Ball(this.getBallSpawnPosition()));
+  }
+
+  private splitBall(): void {
+    if (this.balls.length >= MAX_BALLS) return;
+
+    const source = this.balls.find((ball) => !ball.attached) ?? this.balls[0];
+    if (!source) return;
+
+    for (const angle of [-DISRUPT_ANGLE, DISRUPT_ANGLE]) {
+      if (this.balls.length >= MAX_BALLS) break;
+      this.balls.push(source.spawnSplitCopy(angle));
+    }
+  }
+
+  private removeLostBalls(): void {
+    for (let i = this.balls.length - 1; i >= 0; i--) {
+      if (!this.balls[i].alive) {
+        this.balls.splice(i, 1);
+      }
+    }
   }
 
   private clearPowerUps(): void {

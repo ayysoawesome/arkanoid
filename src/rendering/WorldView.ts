@@ -18,7 +18,7 @@ const BRICK_COLORS: Record<ColoredBrickKind, number> = {
 
 type WorldViewState = {
   readonly player: Player;
-  readonly ball: Ball;
+  readonly balls: readonly Ball[];
   readonly bricks: readonly Brick[];
   readonly powerUps: readonly PowerUp[];
   readonly laserShots: readonly LaserShot[];
@@ -27,7 +27,8 @@ type WorldViewState = {
 export class WorldView extends Container {
   private readonly playerView: AnimatedSprite;
   private readonly laserPlayerView: AnimatedSprite;
-  private readonly ballView: Sprite;
+  private readonly ballsView = new Container();
+  private readonly ballViews = new Map<Ball, Sprite>();
   private renderedPlayerMode: Player["mode"] = "normal";
   private bricksView = new Container();
   private readonly brickViews = new Map<Brick, Graphics | Sprite>();
@@ -38,7 +39,7 @@ export class WorldView extends Container {
 
   constructor(
     player: Player,
-    ball: Ball,
+    balls: readonly Ball[],
     bricks: Brick[],
     powerUps: PowerUp[],
     laserShots: LaserShot[],
@@ -66,9 +67,6 @@ export class WorldView extends Container {
     });
     this.laserPlayerView.visible = false;
 
-    this.ballView = new Sprite(assets.ball);
-    this.ballView.anchor.set(0.5);
-
     this.addChild(
       fieldView,
       this.bricksView,
@@ -76,14 +74,14 @@ export class WorldView extends Container {
       this.laserShotsView,
       this.playerView,
       this.laserPlayerView,
-      this.ballView,
+      this.ballsView,
     );
-    this.sync({ player, ball, bricks, powerUps, laserShots });
+    this.sync({ player, balls, bricks, powerUps, laserShots });
   }
 
-  sync({ player, ball, bricks, powerUps, laserShots }: WorldViewState): void {
+  sync({ player, balls, bricks, powerUps, laserShots }: WorldViewState): void {
     this.syncPlayer(player);
-    this.syncBall(ball);
+    this.syncBalls(balls);
     this.syncBricks(bricks);
     this.syncPowerUps(powerUps);
     this.syncLaserShots(laserShots);
@@ -213,8 +211,29 @@ export class WorldView extends Container {
     this.laserPlayerView.position.set(player.position.x, player.position.y);
   }
 
-  private syncBall(ball: Ball) {
-    this.ballView.position.set(ball.position.x, ball.position.y);
+  private syncBalls(balls: readonly Ball[]): void {
+    const currentBalls = new Set(balls);
+
+    for (const [ball, view] of this.ballViews) {
+      if (currentBalls.has(ball)) continue;
+
+      this.ballsView.removeChild(view);
+      view.destroy();
+      this.ballViews.delete(ball);
+    }
+
+    for (const ball of balls) {
+      let view = this.ballViews.get(ball);
+
+      if (!view) {
+        view = new Sprite(this.assets.ball);
+        view.anchor.set(0.5);
+        this.ballsView.addChild(view);
+        this.ballViews.set(ball, view);
+      }
+
+      view.position.set(ball.position.x, ball.position.y);
+    }
   }
 
   private createBrickView(brick: Brick, assets: GameAssets) {

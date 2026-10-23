@@ -77,7 +77,7 @@ export class GameScene extends Scene {
 
     this.worldView = new WorldView(
       this.world.player,
-      this.world.ball,
+      this.world.balls,
       this.world.bricks,
       this.world.powerUps,
       this.world.laserShots,
@@ -125,7 +125,7 @@ export class GameScene extends Scene {
     });
     this.worldView.sync({
       player: this.world.player,
-      ball: this.world.ball,
+      balls: this.world.balls,
       bricks: this.world.bricks,
       powerUps: this.world.powerUps,
       laserShots: this.world.laserShots,

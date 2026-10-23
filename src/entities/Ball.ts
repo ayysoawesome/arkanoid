@@ -74,4 +74,20 @@ export class Ball {
     this.speed = nextSpeed;
     this.collisionsSinceIncrease = 0;
   }
+
+  spawnSplitCopy(angleRadians: number): Ball {
+    const copy = new Ball(this.position);
+    copy.setSpeed(this.currentSpeed);
+    copy.release();
+
+    const velocityX = this.attached ? 0 : this.velocity.x;
+    const velocityY = this.attached ? -this.currentSpeed : this.velocity.y;
+    const cos = Math.cos(angleRadians);
+    const sin = Math.sin(angleRadians);
+
+    copy.velocity.x = velocityX * cos - velocityY * sin;
+    copy.velocity.y = velocityX * sin + velocityY * cos;
+
+    return copy;
+  }
 }
