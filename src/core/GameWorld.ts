@@ -133,6 +133,11 @@ export class GameWorld {
       return;
     }
 
+    if (kind === "catch") {
+      this.player.enableCatch();
+      return;
+    }
+
     if (kind === "slow") {
       this.ball.setSpeed(this.ball.currentSpeed * SLOW_FACTOR);
       return;

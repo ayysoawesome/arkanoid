@@ -127,8 +127,13 @@ export class WorldView extends Container {
     const texture = player.isExpanded
       ? this.assets.playerExpanded
       : this.assets.player;
-    if (this.playerView.texture !== texture) {
+
+    if (
+      this.playerView.texture !== texture ||
+      this.playerView.width !== player.width
+    ) {
       this.playerView.texture = texture;
+      this.playerView.setSize(player.width, player.height);
     }
     this.playerView.position.set(player.position.x, player.position.y);
   }

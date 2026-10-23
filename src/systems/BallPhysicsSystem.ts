@@ -59,6 +59,18 @@ export class BallPhysicsSystem {
 
     if (!crossedTop || !overlapsHorizontally) return;
 
+    if (player.canCatchBall) {
+      const maxOffsetX = player.width / 2 - ball.radius;
+      const offsetX = Math.max(
+        -maxOffsetX,
+        Math.min(maxOffsetX, ball.position.x - player.position.x),
+      );
+      ball.position.x = player.position.x + offsetX;
+      ball.position.y = playerTop - ball.radius;
+      ball.attach(offsetX);
+      return;
+    }
+
     const hitOffset =
       (ball.position.x - player.position.x) / (player.width / 2);
 
@@ -148,7 +160,7 @@ export class BallPhysicsSystem {
     player: Player,
     launchRequested: boolean,
   ) {
-    ball.position.x = player.position.x;
+    ball.position.x = player.position.x + ball.attachedOffsetX;
     ball.position.y = player.position.y - player.height / 2 - ball.radius;
 
     if (launchRequested) {
@@ -157,7 +169,7 @@ export class BallPhysicsSystem {
   }
 
   private launchBall(ball: Ball) {
-    ball.attached = false;
+    ball.release();
     this.setBallDirection(ball, LAUNCH_ANGLE);
   }
 }

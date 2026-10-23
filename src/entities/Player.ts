@@ -8,6 +8,7 @@ export class Player {
   readonly speed = 160;
   position = { x: worldConfig.width / 2, y: worldConfig.height - 16 };
   private expanded = false;
+  private catchEnabled = false;
 
   get width(): number {
     return this.expanded ? Player.EXPANDED_WIDTH : Player.NORMAL_WIDTH;
@@ -17,6 +18,10 @@ export class Player {
     return this.expanded;
   }
 
+  get canCatchBall(): boolean {
+    return this.catchEnabled;
+  }
+
   expand(): void {
     this.expanded = true;
     const minX = fieldBounds.left + this.width / 2;
@@ -24,8 +29,13 @@ export class Player {
     this.position.x = Math.max(minX, Math.min(maxX, this.position.x));
   }
 
+  enableCatch(): void {
+    this.catchEnabled = true;
+  }
+
   reset() {
     this.expanded = false;
+    this.catchEnabled = false;
     this.position.x = worldConfig.width / 2;
     this.position.y = worldConfig.height - 16;
   }
