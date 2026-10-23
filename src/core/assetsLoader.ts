@@ -3,6 +3,7 @@ import { POWER_UP_KINDS, type PowerUpKind } from "@/entities";
 
 const gameAssetPaths = {
   player: "/player/vaus.png",
+  playerExpanded: "/player/vaus-expanded.png",
   ball: "ball/ball.png",
   field1: "/fields/field-01.png",
   brickSilver: "bricks/silver-01.png",

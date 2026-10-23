@@ -124,6 +124,12 @@ export class WorldView extends Container {
   }
 
   private syncPlayer(player: Player) {
+    const texture = player.isExpanded
+      ? this.assets.playerExpanded
+      : this.assets.player;
+    if (this.playerView.texture !== texture) {
+      this.playerView.texture = texture;
+    }
     this.playerView.position.set(player.position.x, player.position.y);
   }
 

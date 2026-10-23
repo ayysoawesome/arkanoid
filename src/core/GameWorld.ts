@@ -128,18 +128,24 @@ export class GameWorld {
   };
 
   private applyPowerUp(kind: PowerUpKind): void {
+    if (kind === "expand") {
+      this.player.expand();
+      return;
+    }
+
     if (kind === "slow") {
       this.ball.setSpeed(this.ball.currentSpeed * SLOW_FACTOR);
       return;
     }
 
-    if (kind !== "player") return;
-
-    this.remainingLives++;
-    this.events.emit({
-      type: "lifeGained",
-      remainingLives: this.remainingLives,
-    });
+    if (kind === "player") {
+      this.remainingLives++;
+      this.events.emit({
+        type: "lifeGained",
+        remainingLives: this.remainingLives,
+      });
+      return;
+    }
   }
 
   private finishGame(outcome: GameOutcome): void {
