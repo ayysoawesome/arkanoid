@@ -1,7 +1,7 @@
 import { worldConfig } from "@/config";
 import { GameAssets } from "@/core";
-import { Ball, Brick, BrickKind, Player } from "@/entities";
-import { Container, Graphics, Sprite } from "pixi.js";
+import { Ball, Brick, BrickKind, Player, PowerUp } from "@/entities";
+import { AnimatedSprite, Container, Graphics, Sprite } from "pixi.js";
 
 type ColoredBrickKind = Exclude<BrickKind, "silver" | "gold">;
 
@@ -20,6 +20,7 @@ type WorldViewState = {
   readonly player: Player;
   readonly ball: Ball;
   readonly bricks: readonly Brick[];
+  readonly powerUps: readonly PowerUp[];
 };
 
 export class WorldView extends Container {
@@ -27,11 +28,14 @@ export class WorldView extends Container {
   private readonly ballView: Sprite;
   private bricksView = new Container();
   private readonly brickViews = new Map<Brick, Graphics | Sprite>();
+  private readonly powerUpsView = new Container();
+  private readonly powerUpViews = new Map<PowerUp, AnimatedSprite>();
 
   constructor(
     player: Player,
     ball: Ball,
     bricks: Brick[],
+    powerUps: PowerUp[],
     private readonly assets: GameAssets,
   ) {
     super();
@@ -47,14 +51,50 @@ export class WorldView extends Container {
     this.ballView = new Sprite(assets.ball);
     this.ballView.anchor.set(0.5);
 
-    this.addChild(fieldView, this.bricksView, this.playerView, this.ballView);
-    this.sync({ player, ball, bricks });
+    this.addChild(
+      fieldView,
+      this.bricksView,
+      this.powerUpsView,
+      this.playerView,
+      this.ballView,
+    );
+    this.sync({ player, ball, bricks, powerUps });
   }
 
-  sync({ player, ball, bricks }: WorldViewState): void {
+  sync({ player, ball, bricks, powerUps }: WorldViewState): void {
     this.syncPlayer(player);
     this.syncBall(ball);
     this.syncBricks(bricks);
+    this.syncPowerUps(powerUps);
+  }
+
+  private syncPowerUps(powerUps: readonly PowerUp[]): void {
+    const currentPowerUps = new Set(powerUps);
+
+    for (const [powerUp, view] of this.powerUpViews) {
+      if (currentPowerUps.has(powerUp)) continue;
+
+      this.powerUpsView.removeChild(view);
+      view.destroy();
+      this.powerUpViews.delete(powerUp);
+    }
+
+    for (const powerUp of powerUps) {
+      let view = this.powerUpViews.get(powerUp);
+
+      if (!view) {
+        view = new AnimatedSprite({
+          textures: this.assets.powerUps[powerUp.kind],
+          anchor: 0.5,
+          animationSpeed: 0.15,
+          autoPlay: true,
+        });
+        this.powerUpsView.addChild(view);
+        this.powerUpViews.set(powerUp, view);
+      }
+
+      view.position.set(powerUp.position.x, powerUp.position.y);
+    }
   }
 
   private syncBricks(bricks: readonly Brick[]): void {

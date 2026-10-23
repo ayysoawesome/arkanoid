@@ -27,6 +27,7 @@ export class Brick {
   constructor(
     readonly position: { x: number; y: number },
     readonly kind: BrickKind,
+    readonly canDropCapsule = false,
   ) {
     if (this.kind === "silver") {
       this.remainingHealth = 2;

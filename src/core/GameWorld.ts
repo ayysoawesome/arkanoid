@@ -1,10 +1,11 @@
 import { worldConfig } from "@/config";
-import { Ball, Brick, Player } from "@/entities";
+import { Ball, Brick, Player, PowerUp } from "@/entities";
 import {
   BallPhysicsSystem,
   BrickSystem,
   LevelSystem,
   PlayerControlSystem,
+  PowerUpSystem,
 } from "@/systems";
 import { EventQueue } from "./EventQueue";
 import type { GameOutcome, WorldEvent } from "./WorldEvent";
@@ -15,12 +16,14 @@ export class GameWorld {
   readonly player = new Player();
   readonly ball = new Ball(this.getBallSpawnPosition());
   bricks: Brick[] = [];
+  readonly powerUps: PowerUp[] = [];
   private readonly events = new EventQueue<WorldEvent>();
   private readonly playerControl = new PlayerControlSystem();
   private readonly ballPhysics = new BallPhysicsSystem(this.events);
   private readonly brickSystem = new BrickSystem(this.events);
   private readonly levelSystem = new LevelSystem();
   private remainingLives = worldConfig.initialLives;
+  private readonly powerUpSystem = new PowerUpSystem();
   private gameStatus: GameStatus = "playing";
 
   constructor() {
@@ -51,6 +54,7 @@ export class GameWorld {
       bricks: this.bricks,
     });
     this.events.flush();
+    this.powerUpSystem.update({ powerUpArr: this.powerUps, dtSeconds });
     if (this.levelSystem.isCleared(this.bricks)) {
       this.events.emit({
         type: "levelCleared",
@@ -89,6 +93,7 @@ export class GameWorld {
 
   private handleBallLoss(): void {
     this.remainingLives--;
+    this.clearPowerUps();
     this.events.emit({
       type: "lifeLost",
       remainingLives: this.remainingLives,
@@ -106,6 +111,10 @@ export class GameWorld {
     if (event.type === "brickHit") {
       this.brickSystem.handleHit(event.brick);
     }
+
+    if (event.type === "brickDestroyed") {
+      this.powerUpSystem.handleBrickDestroyed(event, this.powerUps);
+    }
   };
 
   private finishGame(outcome: GameOutcome): void {
@@ -114,18 +123,24 @@ export class GameWorld {
   }
 
   private startNextLevel(): void {
+    this.clearPowerUps();
     this.bricks = this.levelSystem.loadNext();
     this.resetPlayerAndBall();
   }
 
   private reset(): void {
     this.levelSystem.reset();
+    this.clearPowerUps();
     this.resetPlayerAndBall();
   }
 
   private resetPlayerAndBall(): void {
     this.player.reset();
     this.ball.reset(this.getBallSpawnPosition());
+  }
+
+  private clearPowerUps(): void {
+    this.powerUps.length = 0;
   }
 
   private getBallSpawnPosition(): { x: number; y: number } {

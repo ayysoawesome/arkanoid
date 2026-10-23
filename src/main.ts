@@ -11,4 +11,6 @@ const main = async () => {
   game.start();
 };
 
-await main();
+main().catch((error: unknown) => {
+  console.error("Failed to start game", error);
+});

@@ -79,6 +79,7 @@ export class GameScene extends Scene {
       this.world.player,
       this.world.ball,
       this.world.bricks,
+      this.world.powerUps,
       assets,
     );
     this.hud.setLives(this.world.lives);
@@ -125,6 +126,7 @@ export class GameScene extends Scene {
       player: this.world.player,
       ball: this.world.ball,
       bricks: this.world.bricks,
+      powerUps: this.world.powerUps,
     });
   }
 }

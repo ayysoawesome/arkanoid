@@ -9,4 +9,5 @@ export interface BrickDef {
   row: number;
   column: number;
   kind: BrickKind;
+  canDropCapsule?: boolean;
 }

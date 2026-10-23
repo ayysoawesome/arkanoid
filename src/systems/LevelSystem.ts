@@ -23,7 +23,7 @@ export class LevelSystem {
     const gridWidth = GRID_COLUMNS * Brick.WIDTH + (GRID_COLUMNS - 1) * GAP;
     const startX = fieldBounds.left + (fieldWidth - gridWidth) / 2;
 
-    return level.bricks.map(({ row, column, kind }) => {
+    return level.bricks.map(({ row, column, kind, canDropCapsule }) => {
       if (column < 0 || column > 10) {
         throw new Error("Max column index is 10");
       }
@@ -33,7 +33,7 @@ export class LevelSystem {
         y: START_Y + row * (Brick.HEIGHT + GAP) + Brick.HEIGHT / 2,
       };
 
-      return new Brick(position, kind);
+      return new Brick(position, kind, canDropCapsule);
     });
   }
 

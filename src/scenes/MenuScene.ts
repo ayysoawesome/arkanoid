@@ -103,7 +103,7 @@ export class MenuScene extends Scene {
     if (this.selectedIndex === 0) this.onGameStart();
   }
 
-  update(_dtSeconds: number): void {
+  update(): void {
     this.controls.update();
   }
 }

@@ -14,6 +14,7 @@ export class BrickSystem {
     this.events.emit({
       type: "brickDestroyed",
       brickKind: brick.kind,
+      canDropCapsule: brick.canDropCapsule,
       position: { ...brick.position },
     });
   }

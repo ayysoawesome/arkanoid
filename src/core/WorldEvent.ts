@@ -10,6 +10,7 @@ export type BrickHitEvent = {
 export type BrickDestroyedEvent = {
   type: "brickDestroyed";
   brickKind: BrickKind;
+  canDropCapsule: boolean;
   position: Readonly<{ x: number; y: number }>;
 };
 
