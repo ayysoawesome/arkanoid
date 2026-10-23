@@ -9,7 +9,7 @@ export const worldConfig: IWorldConfig = {
   width: 224,
   height: 256,
   borderWidth: 8,
-  initialLives: 3,
+  initialLives: 1,
 } as const;
 
 export const fieldBounds = {

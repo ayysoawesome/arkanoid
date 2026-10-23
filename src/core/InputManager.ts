@@ -6,7 +6,7 @@ const inputKeys = [
   "Space",
 ] as const;
 
-type InputKey = (typeof inputKeys)[number];
+export type InputKey = (typeof inputKeys)[number];
 
 const allowedKeys = new Set<string>(inputKeys);
 
@@ -25,6 +25,14 @@ export class InputManager {
     const pressed = this.pendingPresses.has(code);
     this.pendingPresses.delete(code);
     return pressed;
+  }
+
+  isDown(code: InputKey): boolean {
+    return this.pressedKeys.has(code);
+  }
+
+  clearPendingPresses(): void {
+    this.pendingPresses.clear();
   }
 
   private readonly onKeyDown = (event: KeyboardEvent): void => {
@@ -48,13 +56,6 @@ export class InputManager {
     this.pendingPresses.clear();
     this.pressedKeys.clear();
   };
-
-  get horizontal(): number {
-    return (
-      Number(this.pressedKeys.has("ArrowRight")) -
-      Number(this.pressedKeys.has("ArrowLeft"))
-    );
-  }
 
   destroy(): void {
     this.canvas.removeEventListener("keydown", this.onKeyDown);

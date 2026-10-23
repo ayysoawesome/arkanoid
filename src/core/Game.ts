@@ -57,13 +57,14 @@ export class Game {
   }
 
   private registerScenes(assets: GameAssets): void {
-    this.sceneManager?.register("game", () => {
-      return new GameScene(this.inputManager, assets);
+    const handleReturnToMenu = () => this.sceneManager.show("menu");
+    this.sceneManager.register("game", () => {
+      return new GameScene(this.inputManager, assets, handleReturnToMenu);
     });
-    const onGameStart = () => this.sceneManager.show("game");
+    const handleGameStart = () => this.sceneManager.show("game");
     this.sceneManager.register(
       "menu",
-      () => new MenuScene(this.inputManager, onGameStart),
+      () => new MenuScene(this.inputManager, handleGameStart),
     );
   }
 
