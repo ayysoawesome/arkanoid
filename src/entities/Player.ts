@@ -1,6 +1,6 @@
 import { fieldBounds, worldConfig } from "@/config";
 
-type PlayerMode = "normal" | "expanded" | "catch";
+type PlayerMode = "normal" | "expanded" | "catch" | "laser";
 
 export class Player {
   private static readonly NORMAL_WIDTH = 32;
@@ -30,6 +30,10 @@ export class Player {
 
   enableCatch(): void {
     this.currentMode = "catch";
+  }
+
+  enableLaser(): void {
+    this.currentMode = "laser";
   }
 
   reset() {

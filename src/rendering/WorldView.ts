@@ -1,6 +1,6 @@
 import { worldConfig } from "@/config";
 import { GameAssets } from "@/core";
-import { Ball, Brick, BrickKind, Player, PowerUp } from "@/entities";
+import { Ball, Brick, BrickKind, LaserShot, Player, PowerUp } from "@/entities";
 import { AnimatedSprite, Container, Graphics, Sprite } from "pixi.js";
 
 type ColoredBrickKind = Exclude<BrickKind, "silver" | "gold">;
@@ -21,21 +21,27 @@ type WorldViewState = {
   readonly ball: Ball;
   readonly bricks: readonly Brick[];
   readonly powerUps: readonly PowerUp[];
+  readonly laserShots: readonly LaserShot[];
 };
 
 export class WorldView extends Container {
-  private readonly playerView: Sprite;
+  private readonly playerView: AnimatedSprite;
+  private readonly laserPlayerView: AnimatedSprite;
   private readonly ballView: Sprite;
+  private renderedPlayerMode: Player["mode"] = "normal";
   private bricksView = new Container();
   private readonly brickViews = new Map<Brick, Graphics | Sprite>();
   private readonly powerUpsView = new Container();
   private readonly powerUpViews = new Map<PowerUp, AnimatedSprite>();
+  private readonly laserShotsView = new Container();
+  private readonly laserShotViews = new Map<LaserShot, Sprite>();
 
   constructor(
     player: Player,
     ball: Ball,
     bricks: Brick[],
     powerUps: PowerUp[],
+    laserShots: LaserShot[],
     private readonly assets: GameAssets,
   ) {
     super();
@@ -45,8 +51,20 @@ export class WorldView extends Container {
     fieldView.position.set(0, 0);
     fieldView.setSize(worldConfig.width, worldConfig.height);
 
-    this.playerView = new Sprite(assets.player);
-    this.playerView.anchor.set(0.5);
+    this.playerView = new AnimatedSprite({
+      textures: assets.normalLights,
+      anchor: 0.5,
+      animationSpeed: 0.1,
+      autoPlay: true,
+    });
+
+    this.laserPlayerView = new AnimatedSprite({
+      textures: [assets.normalLights[0], ...assets.laserTransform],
+      anchor: 0.5,
+      animationSpeed: 0.2,
+      loop: false,
+    });
+    this.laserPlayerView.visible = false;
 
     this.ballView = new Sprite(assets.ball);
     this.ballView.anchor.set(0.5);
@@ -55,17 +73,45 @@ export class WorldView extends Container {
       fieldView,
       this.bricksView,
       this.powerUpsView,
+      this.laserShotsView,
       this.playerView,
+      this.laserPlayerView,
       this.ballView,
     );
-    this.sync({ player, ball, bricks, powerUps });
+    this.sync({ player, ball, bricks, powerUps, laserShots });
   }
 
-  sync({ player, ball, bricks, powerUps }: WorldViewState): void {
+  sync({ player, ball, bricks, powerUps, laserShots }: WorldViewState): void {
     this.syncPlayer(player);
     this.syncBall(ball);
     this.syncBricks(bricks);
     this.syncPowerUps(powerUps);
+    this.syncLaserShots(laserShots);
+  }
+
+  private syncLaserShots(laserShots: readonly LaserShot[]): void {
+    const currentShots = new Set(laserShots);
+
+    for (const [shot, view] of this.laserShotViews) {
+      if (currentShots.has(shot)) continue;
+
+      this.laserShotsView.removeChild(view);
+      view.destroy();
+      this.laserShotViews.delete(shot);
+    }
+
+    for (const shot of laserShots) {
+      let view = this.laserShotViews.get(shot);
+
+      if (!view) {
+        view = new Sprite(this.assets.laserShot);
+        view.anchor.set(0.5);
+        this.laserShotsView.addChild(view);
+        this.laserShotViews.set(shot, view);
+      }
+
+      view.position.set(shot.position.x, shot.position.y);
+    }
   }
 
   private syncPowerUps(powerUps: readonly PowerUp[]): void {
@@ -124,19 +170,47 @@ export class WorldView extends Container {
   }
 
   private syncPlayer(player: Player) {
-    const texture =
-      player.mode === "expanded"
-        ? this.assets.playerExpanded
-        : this.assets.player;
+    if (player.mode !== this.renderedPlayerMode) {
+      this.renderedPlayerMode = player.mode;
+      this.playerView.visible = player.mode !== "laser";
+      this.laserPlayerView.visible = player.mode === "laser";
+
+      if (player.mode === "laser") {
+        this.playerView.stop();
+        this.laserPlayerView.textures = [
+          this.assets.normalLights[0],
+          ...this.assets.laserTransform,
+        ];
+        this.laserPlayerView.animationSpeed = 0.2;
+        this.laserPlayerView.loop = false;
+        this.laserPlayerView.onComplete = () => {
+          if (this.renderedPlayerMode !== "laser") return;
+
+          this.laserPlayerView.textures = this.assets.laserLights;
+          this.laserPlayerView.animationSpeed = 0.1;
+          this.laserPlayerView.loop = true;
+          this.laserPlayerView.gotoAndPlay(0);
+        };
+        this.laserPlayerView.gotoAndPlay(0);
+      } else {
+        this.laserPlayerView.stop();
+        this.laserPlayerView.onComplete = undefined;
+        this.playerView.textures =
+          player.mode === "expanded"
+            ? this.assets.expandedLights
+            : this.assets.normalLights;
+        this.playerView.gotoAndPlay(0);
+      }
+    }
 
     if (
-      this.playerView.texture !== texture ||
-      this.playerView.width !== player.width
+      this.playerView.width !== player.width ||
+      this.playerView.height !== player.height
     ) {
-      this.playerView.texture = texture;
       this.playerView.setSize(player.width, player.height);
     }
     this.playerView.position.set(player.position.x, player.position.y);
+    this.laserPlayerView.position.set(player.position.x, player.position.y);
   }
 
   private syncBall(ball: Ball) {

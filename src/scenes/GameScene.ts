@@ -12,7 +12,7 @@ import { GameHud } from "@/ui/hud";
 import { worldConfig } from "@/config";
 import { DefeatOverlay, VictoryOverlay } from "@/ui/overlays";
 
-type GameAction = "moveLeft" | "moveRight" | "launch" | "returnToMenu";
+type GameAction = "moveLeft" | "moveRight" | "action" | "returnToMenu";
 type ControlMode = "playing" | "result";
 
 export class GameScene extends Scene {
@@ -20,7 +20,7 @@ export class GameScene extends Scene {
   private readonly controls: Controls<GameAction>;
   private controlMode: ControlMode = "playing";
   private direction = 0;
-  private launchRequested = false;
+  private actionRequested = false;
   private readonly playingBindings: ControlBindings<GameAction> = {
     moveLeft: {
       key: "ArrowLeft",
@@ -36,11 +36,11 @@ export class GameScene extends Scene {
         this.direction++;
       },
     },
-    launch: {
+    action: {
       key: "Space",
       when: "pressed",
       handle: () => {
-        this.launchRequested = true;
+        this.actionRequested = true;
       },
     },
   };
@@ -80,6 +80,7 @@ export class GameScene extends Scene {
       this.world.ball,
       this.world.bricks,
       this.world.powerUps,
+      this.world.laserShots,
       assets,
     );
     this.hud.setLives(this.world.lives);
@@ -113,13 +114,13 @@ export class GameScene extends Scene {
 
   update(dtSeconds: number): void {
     this.direction = 0;
-    this.launchRequested = false;
+    this.actionRequested = false;
     this.controls.update();
     if (this.controlMode === "result") return;
 
     this.world.update({
       direction: this.direction,
-      spacePressed: this.launchRequested,
+      actionPressed: this.actionRequested,
       dtSeconds,
     });
     this.worldView.sync({
@@ -127,6 +128,7 @@ export class GameScene extends Scene {
       ball: this.world.ball,
       bricks: this.world.bricks,
       powerUps: this.world.powerUps,
+      laserShots: this.world.laserShots,
     });
   }
 }

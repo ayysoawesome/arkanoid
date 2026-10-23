@@ -1,8 +1,16 @@
 import { worldConfig } from "@/config";
-import { Ball, Brick, Player, PowerUp, type PowerUpKind } from "@/entities";
+import {
+  Ball,
+  Brick,
+  LaserShot,
+  Player,
+  PowerUp,
+  type PowerUpKind,
+} from "@/entities";
 import {
   BallPhysicsSystem,
   BrickSystem,
+  LaserSystem,
   LevelSystem,
   PlayerControlSystem,
   PowerUpSystem,
@@ -18,11 +26,13 @@ export class GameWorld {
   readonly ball = new Ball(this.getBallSpawnPosition());
   bricks: Brick[] = [];
   readonly powerUps: PowerUp[] = [];
+  readonly laserShots: LaserShot[] = [];
   private readonly events = new EventQueue<WorldEvent>();
   private readonly playerControl = new PlayerControlSystem();
   private readonly ballPhysics = new BallPhysicsSystem(this.events);
   private readonly brickSystem = new BrickSystem(this.events);
   private readonly powerUpSystem = new PowerUpSystem(this.events);
+  private readonly laserSystem = new LaserSystem(this.events);
   private readonly levelSystem = new LevelSystem();
   private remainingLives = worldConfig.initialLives;
   private gameStatus: GameStatus = "playing";
@@ -38,21 +48,30 @@ export class GameWorld {
 
   update({
     direction,
-    spacePressed,
+    actionPressed,
     dtSeconds,
   }: {
     direction: number;
-    spacePressed: boolean;
+    actionPressed: boolean;
     dtSeconds: number;
   }): void {
     if (this.gameStatus !== "playing") return;
+    const fireRequested = actionPressed && !this.ball.attached;
     this.playerControl.update({ player: this.player, direction, dtSeconds });
     this.ballPhysics.update({
       player: this.player,
       ball: this.ball,
-      launchRequested: spacePressed,
+      launchRequested: actionPressed,
       dtSeconds,
       bricks: this.bricks,
+    });
+    this.events.flush();
+    this.laserSystem.update({
+      shots: this.laserShots,
+      player: this.player,
+      bricks: this.bricks,
+      fireRequested: fireRequested && this.ball.alive,
+      dtSeconds,
     });
     this.events.flush();
     this.powerUpSystem.update({
@@ -138,6 +157,11 @@ export class GameWorld {
       return;
     }
 
+    if (kind === "laser") {
+      this.player.enableLaser();
+      return;
+    }
+
     if (kind === "slow") {
       this.ball.setSpeed(this.ball.currentSpeed * SLOW_FACTOR);
       return;
@@ -155,6 +179,7 @@ export class GameWorld {
 
   private finishGame(outcome: GameOutcome): void {
     this.gameStatus = outcome;
+    this.clearLaserShots();
     this.events.emit({ type: "gameEnded", outcome });
   }
 
@@ -171,12 +196,18 @@ export class GameWorld {
   }
 
   private resetPlayerAndBall(): void {
+    this.clearLaserShots();
     this.player.reset();
     this.ball.reset(this.getBallSpawnPosition());
   }
 
   private clearPowerUps(): void {
     this.powerUps.length = 0;
+  }
+
+  private clearLaserShots(): void {
+    this.laserShots.length = 0;
+    this.laserSystem.reset();
   }
 
   private getBallSpawnPosition(): { x: number; y: number } {
