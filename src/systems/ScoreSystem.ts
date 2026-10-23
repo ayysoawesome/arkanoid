@@ -16,6 +16,7 @@ const BRICK_POINTS: Record<BrickKind, number> = {
 };
 
 const CAPSULE_POINTS = 1000;
+const ENEMY_POINTS = 100;
 
 export class ScoreSystem {
   private currentScore = 0;
@@ -37,6 +38,10 @@ export class ScoreSystem {
 
   awardCapsule(): void {
     this.addPoints(CAPSULE_POINTS);
+  }
+
+  awardEnemy(): void {
+    this.addPoints(ENEMY_POINTS);
   }
 
   private addPoints(points: number): void {

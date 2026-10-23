@@ -10,6 +10,8 @@ export type {
   BrickDestroyedEvent,
   PowerUpCollectedEvent,
   ScoreChangedEvent,
+  EnemyHitEvent,
+  EnemyDestroyedEvent,
   WorldEvent,
 } from "./WorldEvent";
 export { type EventWriter, EventQueue } from "./EventQueue";

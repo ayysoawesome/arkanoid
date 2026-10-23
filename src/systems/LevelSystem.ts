@@ -1,6 +1,6 @@
 import { fieldBounds } from "@/config";
 import { Brick } from "@/entities";
-import { levels } from "@/levels";
+import { levels, type EnemySpawnDef } from "@/levels";
 
 const GRID_COLUMNS = 11;
 const GAP = 3;
@@ -11,6 +11,13 @@ export class LevelSystem {
 
   get currentLevelIndex(): number {
     return this.currentIndex;
+  }
+
+  getEnemySpawns(): readonly EnemySpawnDef[] {
+    return (
+      levels.find((level) => level.index === this.currentIndex)?.enemySpawns ??
+      []
+    );
   }
 
   load(index: number): Brick[] {

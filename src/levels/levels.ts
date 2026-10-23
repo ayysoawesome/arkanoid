@@ -2,6 +2,12 @@ import { LevelDef } from "./types";
 
 export const level1: LevelDef = {
   index: 1,
+  enemySpawns: [
+    { atSeconds: 2, kind: "blueShip", side: "left" },
+    { atSeconds: 6, kind: "yellowShip", side: "right" },
+    { atSeconds: 10, kind: "blueOrb", side: "left" },
+    { atSeconds: 14, kind: "redOrb", side: "right" },
+  ],
   bricks: [
     { row: 0, column: 0, kind: "silver" },
     { row: 0, column: 1, kind: "silver", canDropCapsule: true },
@@ -30,6 +36,7 @@ export const level1: LevelDef = {
 
 export const level2: LevelDef = {
   index: 2,
+  enemySpawns: [{ atSeconds: 2, kind: "redOrb", side: "left" }],
   bricks: [
     { row: 1, column: 0, kind: "red" },
     { row: 0, column: 1, kind: "red" },

@@ -1,13 +1,15 @@
-import { Ball, Brick, Player } from "@/entities";
+import { Ball, Brick, Enemy, Player } from "@/entities";
 import { fieldBounds } from "@/config";
 import type { EventWriter } from "@/core/EventQueue";
-import type { BrickHitEvent } from "@/core/WorldEvent";
+import type { BrickHitEvent, EnemyHitEvent } from "@/core/WorldEvent";
 
 const MAX_BOUNCE_ANGLE = (70 * Math.PI) / 180;
 const LAUNCH_ANGLE = (20 * Math.PI) / 180;
 
 export class BallPhysicsSystem {
-  constructor(private readonly events: EventWriter<BrickHitEvent>) {}
+  constructor(
+    private readonly events: EventWriter<BrickHitEvent | EnemyHitEvent>,
+  ) {}
 
   update({
     ball,
@@ -15,12 +17,14 @@ export class BallPhysicsSystem {
     player,
     launchRequested,
     bricks,
+    enemies,
   }: {
     ball: Ball;
     player: Player;
     dtSeconds: number;
     launchRequested: boolean;
     bricks: readonly Brick[];
+    enemies: readonly Enemy[];
   }): void {
     if (!ball.alive) return;
 
@@ -36,7 +40,15 @@ export class BallPhysicsSystem {
     ball.position.y += ball.velocity.y * dtSeconds;
 
     this.resolveWallCollisions(ball);
-    this.resolveBrickCollision(ball, bricks, previousX, previousY);
+    const hitBrick = this.resolveBrickCollision(
+      ball,
+      bricks,
+      previousX,
+      previousY,
+    );
+    if (!hitBrick) {
+      this.resolveEnemyCollision(ball, enemies, previousX, previousY);
+    }
     this.resolvePlayerCollision(ball, player, previousY);
 
     if (ball.position.y - ball.radius >= fieldBounds.bottom) {
@@ -87,7 +99,7 @@ export class BallPhysicsSystem {
     bricks: readonly Brick[],
     previousX: number,
     previousY: number,
-  ): void {
+  ): boolean {
     for (const brick of bricks) {
       if (brick.destroyed) continue;
 
@@ -119,6 +131,40 @@ export class BallPhysicsSystem {
 
       ball.registerBounce();
 
+      return true;
+    }
+    return false;
+  }
+
+  private resolveEnemyCollision(
+    ball: Ball,
+    enemies: readonly Enemy[],
+    previousX: number,
+    previousY: number,
+  ): void {
+    for (const enemy of enemies) {
+      if (!enemy.alive) continue;
+
+      const left = enemy.position.x - Enemy.WIDTH / 2;
+      const right = enemy.position.x + Enemy.WIDTH / 2;
+      const top = enemy.position.y - Enemy.HEIGHT / 2;
+      const bottom = enemy.position.y + Enemy.HEIGHT / 2;
+      const closestX = Math.max(left, Math.min(ball.position.x, right));
+      const closestY = Math.max(top, Math.min(ball.position.y, bottom));
+      const offsetX = ball.position.x - closestX;
+      const offsetY = ball.position.y - closestY;
+
+      if (offsetX * offsetX + offsetY * offsetY >= ball.radius * ball.radius) {
+        continue;
+      }
+
+      this.events.emit({ type: "enemyHit", enemy });
+      ball.position.x = previousX;
+      ball.position.y = previousY;
+      if (offsetX !== 0) ball.velocity.x *= -1;
+      if (offsetY !== 0) ball.velocity.y *= -1;
+      if (offsetX === 0 && offsetY === 0) ball.velocity.y *= -1;
+      ball.registerBounce();
       return;
     }
   }

@@ -1,6 +1,14 @@
 import { exitBounds, worldConfig } from "@/config";
 import { GameAssets } from "@/core";
-import { Ball, Brick, BrickKind, LaserShot, Player, PowerUp } from "@/entities";
+import {
+  Ball,
+  Brick,
+  BrickKind,
+  Enemy,
+  LaserShot,
+  Player,
+  PowerUp,
+} from "@/entities";
 import { AnimatedSprite, Container, Graphics, Sprite, Texture } from "pixi.js";
 
 type ColoredBrickKind = Exclude<BrickKind, "silver" | "gold">;
@@ -22,6 +30,7 @@ type WorldViewState = {
   readonly bricks: readonly Brick[];
   readonly powerUps: readonly PowerUp[];
   readonly laserShots: readonly LaserShot[];
+  readonly enemies: readonly Enemy[];
   readonly exitOpen: boolean;
 };
 
@@ -37,6 +46,10 @@ export class WorldView extends Container {
   private readonly powerUpViews = new Map<PowerUp, AnimatedSprite>();
   private readonly laserShotsView = new Container();
   private readonly laserShotViews = new Map<LaserShot, Sprite>();
+  private readonly enemiesView = new Container();
+  private readonly enemyViews = new Map<Enemy, AnimatedSprite>();
+  private readonly enemyEffectsView = new Container();
+  private readonly enemyEffects = new Set<AnimatedSprite>();
   private readonly exitView: Sprite;
 
   constructor(
@@ -73,6 +86,8 @@ export class WorldView extends Container {
       fieldView,
       this.exitView,
       this.bricksView,
+      this.enemiesView,
+      this.enemyEffectsView,
       this.powerUpsView,
       this.laserShotsView,
       this.playerView,
@@ -88,6 +103,7 @@ export class WorldView extends Container {
     bricks,
     powerUps,
     laserShots,
+    enemies,
     exitOpen,
   }: WorldViewState): void {
     this.exitView.visible = exitOpen;
@@ -96,6 +112,59 @@ export class WorldView extends Container {
     this.syncBricks(bricks);
     this.syncPowerUps(powerUps);
     this.syncLaserShots(laserShots);
+    this.syncEnemies(enemies);
+  }
+
+  private syncEnemies(enemies: readonly Enemy[]): void {
+    const currentEnemies = new Set(enemies);
+
+    for (const [enemy, view] of this.enemyViews) {
+      if (currentEnemies.has(enemy)) continue;
+      this.enemiesView.removeChild(view);
+      view.destroy();
+      this.enemyViews.delete(enemy);
+    }
+
+    for (const enemy of enemies) {
+      let view = this.enemyViews.get(enemy);
+      if (!view) {
+        view = new AnimatedSprite({
+          textures: this.assets.enemyFrames[enemy.kind],
+          anchor: 0.5,
+          animationSpeed: 0.12,
+          autoPlay: true,
+        });
+        this.enemiesView.addChild(view);
+        this.enemyViews.set(enemy, view);
+      }
+      view.position.set(enemy.position.x, enemy.position.y);
+    }
+  }
+
+  playEnemyExplosion(position: Readonly<{ x: number; y: number }>): void {
+    const view = new AnimatedSprite({
+      textures: this.assets.enemyExplosionFrames,
+      anchor: 0.5,
+      animationSpeed: 0.2,
+      loop: false,
+    });
+    view.position.set(position.x, position.y);
+    view.onComplete = () => {
+      this.enemyEffectsView.removeChild(view);
+      this.enemyEffects.delete(view);
+      view.destroy();
+    };
+    this.enemyEffectsView.addChild(view);
+    this.enemyEffects.add(view);
+    view.play();
+  }
+
+  clearEnemyExplosions(): void {
+    for (const view of this.enemyEffects) {
+      this.enemyEffectsView.removeChild(view);
+      view.destroy();
+    }
+    this.enemyEffects.clear();
   }
 
   playBrickHit(brick: Brick): void {

@@ -58,11 +58,14 @@ export class GameScene extends Scene {
   private readonly handleWorldEvent = (event: WorldEvent): void => {
     if (event.type === "brickHit") {
       this.worldView.playBrickHit(event.brick);
+    } else if (event.type === "enemyDestroyed") {
+      this.worldView.playEnemyExplosion(event.enemy.position);
     } else if (event.type === "lifeLost" || event.type === "lifeGained") {
       this.hud.setLives(event.remainingLives);
     } else if (event.type === "scoreChanged") {
       this.hud.setScore(event.score);
     } else if (event.type === "levelStarted") {
+      this.worldView.clearEnemyExplosions();
       this.hud.setRound(event.levelIndex);
     } else if (event.type === "gameEnded") {
       this.defeatOverlay.visible = event.outcome === "defeat";
@@ -88,6 +91,7 @@ export class GameScene extends Scene {
         bricks: this.world.bricks,
         powerUps: this.world.powerUps,
         laserShots: this.world.laserShots,
+        enemies: this.world.enemies,
         exitOpen: this.world.exitOpen,
       },
       assets,
@@ -141,6 +145,7 @@ export class GameScene extends Scene {
       bricks: this.world.bricks,
       powerUps: this.world.powerUps,
       laserShots: this.world.laserShots,
+      enemies: this.world.enemies,
       exitOpen: this.world.exitOpen,
     });
   }

@@ -1,4 +1,4 @@
-import type { Brick, BrickKind, PowerUpKind } from "@/entities";
+import type { Brick, BrickKind, Enemy, PowerUpKind } from "@/entities";
 
 export type GameOutcome = "victory" | "defeat";
 
@@ -24,11 +24,16 @@ export type ScoreChangedEvent = {
   score: number;
 };
 
+export type EnemyHitEvent = { type: "enemyHit"; enemy: Enemy };
+export type EnemyDestroyedEvent = { type: "enemyDestroyed"; enemy: Enemy };
+
 export type WorldEvent =
   | PowerUpCollectedEvent
   | BrickHitEvent
   | BrickDestroyedEvent
   | ScoreChangedEvent
+  | EnemyHitEvent
+  | EnemyDestroyedEvent
   | { type: "levelStarted"; levelIndex: number }
   | { type: "levelCleared"; levelIndex: number }
   | { type: "levelExited"; levelIndex: number }

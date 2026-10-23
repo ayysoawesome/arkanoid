@@ -2,6 +2,7 @@ import { exitBounds, fieldBounds, worldConfig } from "@/config";
 import {
   Ball,
   Brick,
+  Enemy,
   LaserShot,
   Player,
   PowerUp,
@@ -10,6 +11,7 @@ import {
 import {
   BallPhysicsSystem,
   BrickSystem,
+  EnemySystem,
   LaserSystem,
   LevelSystem,
   PlayerControlSystem,
@@ -30,10 +32,12 @@ export class GameWorld {
   bricks: Brick[] = [];
   readonly powerUps: PowerUp[] = [];
   readonly laserShots: LaserShot[] = [];
+  readonly enemies: Enemy[] = [];
   private readonly events = new EventQueue<WorldEvent>();
   private readonly playerControl = new PlayerControlSystem();
   private readonly ballPhysics = new BallPhysicsSystem(this.events);
   private readonly brickSystem = new BrickSystem(this.events);
+  private readonly enemySystem = new EnemySystem(this.events);
   private readonly powerUpSystem = new PowerUpSystem(this.events);
   private readonly laserSystem = new LaserSystem(this.events);
   private readonly levelSystem = new LevelSystem();
@@ -69,6 +73,8 @@ export class GameWorld {
       rightBoundary: this.exitIsOpen ? exitBounds.right : fieldBounds.right,
     });
 
+    this.enemySystem.update(this.enemies, this.player, this.bricks, dtSeconds);
+
     for (const ball of this.balls) {
       this.ballPhysics.update({
         player: this.player,
@@ -76,18 +82,22 @@ export class GameWorld {
         launchRequested: actionPressed,
         dtSeconds,
         bricks: this.bricks,
+        enemies: this.enemies,
       });
     }
     this.removeLostBalls();
     this.events.flush();
+    this.removeDestroyedEnemies();
     this.laserSystem.update({
       shots: this.laserShots,
       player: this.player,
       bricks: this.bricks,
+      enemies: this.enemies,
       fireRequested: actionPressed && !hadAttachedBall && this.balls.length > 0,
       dtSeconds,
     });
     this.events.flush();
+    this.removeDestroyedEnemies();
     this.powerUpSystem.update({
       powerUpArr: this.powerUps,
       dtSeconds,
@@ -138,6 +148,7 @@ export class GameWorld {
     }
 
     this.bricks = this.levelSystem.loadNext();
+    this.enemySystem.startLevel(this.levelSystem.getEnemySpawns());
     this.events.emit({
       type: "levelStarted",
       levelIndex: this.levelSystem.currentLevelIndex,
@@ -157,6 +168,8 @@ export class GameWorld {
       return;
     }
 
+    this.enemies.length = 0;
+    this.enemySystem.startLevel(this.levelSystem.getEnemySpawns());
     this.resetPlayerAndBalls();
   }
 
@@ -171,6 +184,14 @@ export class GameWorld {
         this.levelSystem.currentLevelIndex,
       );
       this.powerUpSystem.handleBrickDestroyed(event, this.powerUps);
+    }
+
+    if (event.type === "enemyHit") {
+      this.enemySystem.handleHit(event.enemy);
+    }
+
+    if (event.type === "enemyDestroyed") {
+      this.scoreSystem.awardEnemy();
     }
 
     if (event.type === "powerUpCollected") {
@@ -245,7 +266,9 @@ export class GameWorld {
 
   private startNextLevel(): void {
     this.clearPowerUps();
+    this.enemies.length = 0;
     this.bricks = this.levelSystem.loadNext();
+    this.enemySystem.startLevel(this.levelSystem.getEnemySpawns());
     this.resetPlayerAndBalls();
     this.events.emit({
       type: "levelStarted",
@@ -257,6 +280,7 @@ export class GameWorld {
     this.levelSystem.reset();
     this.scoreSystem.reset();
     this.clearPowerUps();
+    this.enemies.length = 0;
     this.resetPlayerAndBalls();
   }
 
@@ -266,6 +290,12 @@ export class GameWorld {
     this.player.reset();
     this.balls.length = 0;
     this.balls.push(new Ball(this.getBallSpawnPosition()));
+  }
+
+  private removeDestroyedEnemies(): void {
+    for (let i = this.enemies.length - 1; i >= 0; i--) {
+      if (!this.enemies[i].alive) this.enemies.splice(i, 1);
+    }
   }
 
   private splitBall(): void {

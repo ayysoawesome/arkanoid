@@ -1,6 +1,6 @@
 import type { EventWriter } from "@/core/EventQueue";
-import type { BrickHitEvent } from "@/core/WorldEvent";
-import { Brick, LaserShot, Player } from "@/entities";
+import type { BrickHitEvent, EnemyHitEvent } from "@/core/WorldEvent";
+import { Brick, Enemy, LaserShot, Player } from "@/entities";
 
 const SHOT_COOLDOWN_SECONDS = 0.2;
 const MUZZLE_INSET = 4;
@@ -8,18 +8,22 @@ const MUZZLE_INSET = 4;
 export class LaserSystem {
   private cooldownRemaining = 0;
 
-  constructor(private readonly events: EventWriter<BrickHitEvent>) {}
+  constructor(
+    private readonly events: EventWriter<BrickHitEvent | EnemyHitEvent>,
+  ) {}
 
   update({
     shots,
     player,
     bricks,
+    enemies,
     fireRequested,
     dtSeconds,
   }: {
     shots: LaserShot[];
     player: Player;
     bricks: readonly Brick[];
+    enemies: readonly Enemy[];
     fireRequested: boolean;
     dtSeconds: number;
   }): void {
@@ -35,7 +39,11 @@ export class LaserSystem {
       }
 
       const brick = this.findHitBrick(shot, bricks);
-      if (brick) {
+      const enemy = this.findHitEnemy(shot, enemies);
+      if (enemy && (!brick || enemy.position.y > brick.position.y)) {
+        shots.splice(i, 1);
+        this.events.emit({ type: "enemyHit", enemy });
+      } else if (brick) {
         shots.splice(i, 1);
         this.events.emit({ type: "brickHit", brick });
       }
@@ -90,5 +98,27 @@ export class LaserSystem {
     }
 
     return closestBrick;
+  }
+
+  private findHitEnemy(
+    shot: LaserShot,
+    enemies: readonly Enemy[],
+  ): Enemy | undefined {
+    let closestEnemy: Enemy | undefined;
+    for (const enemy of enemies) {
+      if (!enemy.alive) continue;
+      const overlaps =
+        Math.abs(shot.position.x - enemy.position.x) <
+          (LaserShot.WIDTH + Enemy.WIDTH) / 2 &&
+        Math.abs(shot.position.y - enemy.position.y) <
+          (LaserShot.HEIGHT + Enemy.HEIGHT) / 2;
+      if (
+        overlaps &&
+        (!closestEnemy || enemy.position.y > closestEnemy.position.y)
+      ) {
+        closestEnemy = enemy;
+      }
+    }
+    return closestEnemy;
   }
 }
