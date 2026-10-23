@@ -63,6 +63,7 @@ export class BallPhysicsSystem {
 
     ball.position.y = playerTop - ball.radius;
     this.setBallDirection(ball, bounceAngle);
+    this.registerBounce(ball);
   }
 
   private resolveBrickCollision(
@@ -100,6 +101,8 @@ export class BallPhysicsSystem {
         ball.velocity.y *= -1;
       }
 
+      this.registerBounce(ball);
+
       return;
     }
   }
@@ -112,15 +115,39 @@ export class BallPhysicsSystem {
     if (ball.position.x < minX) {
       ball.position.x = minX;
       ball.velocity.x = Math.abs(ball.velocity.x);
+      this.registerBounce(ball);
     } else if (ball.position.x > maxX) {
       ball.position.x = maxX;
       ball.velocity.x = -Math.abs(ball.velocity.x);
+      this.registerBounce(ball);
     }
 
     if (ball.position.y < minY) {
       ball.position.y = minY;
       ball.velocity.y = Math.abs(ball.velocity.y);
+      this.registerBounce(ball);
     }
+  }
+
+  private registerBounce(ball: Ball): void {
+    if (ball.attached || !ball.alive) return;
+    if (ball.currentSpeed >= Ball.MAX_SPEED) return;
+
+    ball.collisionsSinceIncrease++;
+    if (ball.collisionsSinceIncrease < Ball.COLLISIONS_PER_INCREASE) {
+      return;
+    }
+
+    ball.collisionsSinceIncrease = 0;
+
+    const nextSpeed = Math.min(
+      ball.currentSpeed + Ball.SPEED_INCREMENT,
+      Ball.MAX_SPEED,
+    );
+    const scale = nextSpeed / ball.currentSpeed;
+    ball.velocity.x *= scale;
+    ball.velocity.y *= scale;
+    ball.currentSpeed = nextSpeed;
   }
 
   private setBallDirection(ball: Ball, angle: number) {
