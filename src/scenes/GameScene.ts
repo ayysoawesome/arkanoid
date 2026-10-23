@@ -9,7 +9,7 @@ import {
 import { WorldView } from "@/rendering";
 import { GameHud } from "@/ui/hud";
 import { worldConfig } from "@/config";
-import { DefeatOverlay } from "@/ui/overlays";
+import { DefeatOverlay, VictoryOverlay } from "@/ui/overlays";
 
 type GameAction = "moveLeft" | "moveRight" | "launch" | "returnToMenu";
 type ControlMode = "playing" | "result";
@@ -53,6 +53,7 @@ export class GameScene extends Scene {
   private readonly worldView: WorldView;
   private readonly hud = new GameHud();
   private readonly defeatOverlay = new DefeatOverlay();
+  private readonly victoryOverlay = new VictoryOverlay();
 
   constructor(
     inputManager: InputManager,
@@ -71,7 +72,12 @@ export class GameScene extends Scene {
     );
     this.hud.setLives(this.world.lives);
 
-    this.addChild(this.worldView, this.hud, this.defeatOverlay);
+    this.addChild(
+      this.worldView,
+      this.hud,
+      this.defeatOverlay,
+      this.victoryOverlay,
+    );
   }
 
   resize(width: number, height: number): void {
@@ -89,10 +95,12 @@ export class GameScene extends Scene {
     this.hud.position.set(gameField.width, 0);
 
     this.defeatOverlay.resize(width, height);
+    this.victoryOverlay.resize(width, height);
   }
 
   private syncOverlays() {
     this.defeatOverlay.visible = this.world.status === "defeat";
+    this.victoryOverlay.visible = this.world.status === "victory";
   }
 
   private syncControls(): void {
