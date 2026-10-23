@@ -59,7 +59,7 @@ export class BallPhysicsSystem {
 
     if (!crossedTop || !overlapsHorizontally) return;
 
-    if (player.canCatchBall) {
+    if (player.mode === "catch") {
       const maxOffsetX = player.width / 2 - ball.radius;
       const offsetX = Math.max(
         -maxOffsetX,
