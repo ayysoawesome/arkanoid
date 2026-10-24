@@ -14,7 +14,13 @@ import { worldConfig } from "@/config";
 import { DefeatOverlay, VictoryOverlay } from "@/ui/overlays";
 import { Rectangle } from "pixi.js";
 
-type GameAction = "moveLeft" | "moveRight" | "action" | "returnToMenu";
+type GameAction =
+  | "moveLeft"
+  | "moveRight"
+  | "action"
+  | "enableLaser"
+  | "enableExpand"
+  | "returnToMenu";
 type ControlMode = "playing" | "result";
 
 export class GameScene extends Scene {
@@ -48,6 +54,21 @@ export class GameScene extends Scene {
       },
     },
   };
+  private readonly testBindings: ControlBindings<GameAction> = import.meta.env
+    .DEV
+    ? {
+        enableLaser: {
+          key: "KeyL",
+          when: "pressed",
+          handle: () => this.world.player.enableLaser(),
+        },
+        enableExpand: {
+          key: "KeyE",
+          when: "pressed",
+          handle: () => this.world.player.expand(),
+        },
+      }
+    : {};
   private readonly resultBindings: ControlBindings<GameAction> = {
     returnToMenu: {
       key: "Space",
@@ -89,7 +110,9 @@ export class GameScene extends Scene {
 
     this.controls = new Controls(
       inputManager,
-      inputMode === "keyboard" ? this.playingBindings : {},
+      inputMode === "keyboard"
+        ? { ...this.playingBindings, ...this.testBindings }
+        : this.testBindings,
     );
 
     if (inputMode === "mouse") {

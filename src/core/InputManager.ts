@@ -5,10 +5,15 @@ const inputKeys = [
   "ArrowDown",
   "Space",
 ] as const;
+const devInputKeys = ["KeyL", "KeyE"] as const;
 
-export type InputKey = (typeof inputKeys)[number];
+export type InputKey =
+  (typeof inputKeys)[number] | (typeof devInputKeys)[number];
 
-const allowedKeys = new Set<string>(inputKeys);
+const allowedKeys = new Set<string>([
+  ...inputKeys,
+  ...(import.meta.env.DEV ? devInputKeys : []),
+]);
 
 export class InputManager {
   private readonly pressedKeys = new Set<string>();
