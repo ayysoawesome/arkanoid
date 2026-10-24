@@ -11,8 +11,15 @@ import {
 import { WorldView } from "@/rendering";
 import { GameHud } from "@/ui/hud";
 import { worldConfig } from "@/config";
-import { DefeatOverlay, PauseOverlay, VictoryOverlay } from "@/ui/overlays";
+import {
+  DefeatOverlay,
+  LevelTransitionOverlay,
+  PauseOverlay,
+  VictoryOverlay,
+} from "@/ui/overlays";
 import { Rectangle } from "pixi.js";
+
+const LEVEL_TRANSITION_SECONDS = 1.5;
 
 type GameAction =
   | "moveLeft"
@@ -26,7 +33,7 @@ type GameAction =
   | "nextPauseOption"
   | "confirmPauseOption"
   | "returnToMenu";
-type ControlMode = "playing" | "paused" | "result";
+type ControlMode = "playing" | "paused" | "transition" | "result";
 
 export class GameScene extends Scene {
   private readonly world = new GameWorld();
@@ -36,6 +43,7 @@ export class GameScene extends Scene {
   private actionRequested = false;
   private mouseX: number | null = null;
   private pendingMouseAction = false;
+  private transitionSecondsRemaining = 0;
   private readonly pauseBinding: ControlBindings<GameAction> = {
     pause: {
       key: "Escape",
@@ -119,6 +127,7 @@ export class GameScene extends Scene {
     () => this.resume(),
     () => this.onReturnToMenu(),
   );
+  private readonly levelTransitionOverlay = new LevelTransitionOverlay();
   private readonly handleWorldEvent = (event: WorldEvent): void => {
     if (event.type === "brickHit") {
       this.worldView.playBrickHit(event.brick);
@@ -132,6 +141,7 @@ export class GameScene extends Scene {
     } else if (event.type === "levelStarted") {
       this.worldView.clearEnemyExplosions();
       this.hud.setRound(event.levelIndex);
+      this.showLevelTransition(event.levelIndex);
     } else if (event.type === "gameEnded") {
       this.defeatOverlay.visible = event.outcome === "defeat";
       this.victoryOverlay.visible = event.outcome === "victory";
@@ -173,7 +183,8 @@ export class GameScene extends Scene {
       });
       this.on("pointerdown", (event) => {
         if (event.button !== 0 || event.pointerType !== "mouse") return;
-        if (this.controlMode === "paused") return;
+        if (this.controlMode === "paused" || this.controlMode === "transition")
+          return;
         if (this.controlMode === "result") {
           this.onReturnToMenu();
         } else {
@@ -210,8 +221,11 @@ export class GameScene extends Scene {
       this.defeatOverlay,
       this.victoryOverlay,
       this.pauseOverlay,
+      this.levelTransitionOverlay,
     );
     this.world.onEvent(this.handleWorldEvent);
+    this.showLevelTransition(this.world.currentLevelIndex);
+    this.worldView.setPaused(true);
   }
 
   resize(width: number, height: number): void {
@@ -236,9 +250,18 @@ export class GameScene extends Scene {
     this.defeatOverlay.resize(width, height);
     this.victoryOverlay.resize(width, height);
     this.pauseOverlay.resize(width, height);
+    this.levelTransitionOverlay.resize(width, height);
   }
 
   update(dtSeconds: number): void {
+    if (this.controlMode === "transition") {
+      this.transitionSecondsRemaining -= dtSeconds;
+      if (this.transitionSecondsRemaining <= 0) {
+        this.finishLevelTransition();
+      }
+      return;
+    }
+
     this.direction = 0;
     this.actionRequested = this.pendingMouseAction;
     this.pendingMouseAction = false;
@@ -262,6 +285,29 @@ export class GameScene extends Scene {
       playerPhaseFrame: this.world.playerPhaseFrame,
       playerDefeated: this.world.status === "defeat",
     });
+    if (this.levelTransitionOverlay.visible) {
+      this.worldView.setPaused(true);
+    }
+  }
+
+  private showLevelTransition(levelIndex: number): void {
+    this.controlMode = "transition";
+    this.transitionSecondsRemaining = LEVEL_TRANSITION_SECONDS;
+    this.pendingMouseAction = false;
+    this.mouseX = null;
+    this.controls.setBindings({});
+    this.levelTransitionOverlay.show(levelIndex);
+  }
+
+  private finishLevelTransition(): void {
+    this.levelTransitionOverlay.visible = false;
+    this.worldView.setPaused(false);
+    this.controlMode = "playing";
+    this.controls.setBindings(
+      this.inputMode === "keyboard"
+        ? { ...this.playingBindings, ...this.testBindings }
+        : { ...this.pauseBinding, ...this.testBindings },
+    );
   }
 
   private pause(): void {

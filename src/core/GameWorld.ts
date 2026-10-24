@@ -187,12 +187,14 @@ export class GameWorld {
     }
 
     this.startLevel(this.levelSystem.loadNext());
+    this.events.flush();
   }
 
   startSingleLevel(index: number): void {
     this.reset();
     this.singleLevel = true;
     this.startLevel(this.levelSystem.loadAt(index));
+    this.events.flush();
   }
 
   private startLevel(bricks: Brick[]): void {
