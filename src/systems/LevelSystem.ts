@@ -53,9 +53,12 @@ export class LevelSystem {
       throw new Error("No next level available");
     }
 
-    const nextIndex = this.currentIndex + 1;
-    const bricks = this.load(nextIndex);
-    this.currentIndex = nextIndex;
+    return this.loadAt(this.currentIndex + 1);
+  }
+
+  loadAt(index: number): Brick[] {
+    const bricks = this.load(index);
+    this.currentIndex = index;
     return bricks;
   }
 

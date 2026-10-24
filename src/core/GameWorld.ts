@@ -49,6 +49,7 @@ export class GameWorld {
   private readonly scoreSystem = new ScoreSystem(this.events);
   private remainingLives = worldConfig.initialLives;
   private gameStatus: GameStatus = "playing";
+  private singleLevel = false;
   private exitIsOpen = false;
   private playerPhase: {
     kind: PlayerPhaseKind;
@@ -57,7 +58,6 @@ export class GameWorld {
 
   constructor() {
     this.events.subscribe(this.handleEvent);
-    this.startCampaign();
   }
 
   onEvent(listener: (event: WorldEvent) => void): () => void {
@@ -179,13 +179,24 @@ export class GameWorld {
     };
   }
 
-  private startCampaign() {
+  startCampaign(): void {
     this.reset();
+    this.singleLevel = false;
     if (!this.levelSystem.hasNextLevel()) {
       throw new Error("Campaign has no first level");
     }
 
-    this.bricks = this.levelSystem.loadNext();
+    this.startLevel(this.levelSystem.loadNext());
+  }
+
+  startSingleLevel(index: number): void {
+    this.reset();
+    this.singleLevel = true;
+    this.startLevel(this.levelSystem.loadAt(index));
+  }
+
+  private startLevel(bricks: Brick[]): void {
+    this.bricks = bricks;
     this.enemySystem.startLevel(this.levelSystem.getEnemySpawns());
     this.events.emit({
       type: "levelStarted",
@@ -294,7 +305,9 @@ export class GameWorld {
       levelIndex: this.levelSystem.currentLevelIndex,
     });
 
-    if (this.levelSystem.hasNextLevel()) {
+    if (this.singleLevel) {
+      this.finishGame("victory");
+    } else if (this.levelSystem.hasNextLevel()) {
       this.startNextLevel();
     } else {
       this.finishGame("victory");
@@ -315,6 +328,8 @@ export class GameWorld {
   }
 
   private reset(): void {
+    this.gameStatus = "playing";
+    this.remainingLives = worldConfig.initialLives;
     this.levelSystem.reset();
     this.scoreSystem.reset();
     this.clearPowerUps();

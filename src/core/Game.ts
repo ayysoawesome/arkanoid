@@ -4,8 +4,14 @@ import { GameScene } from "@/scenes/GameScene";
 import { InputManager } from "./InputManager";
 import { gameConfig } from "@/config";
 import { GameAssets, loadGameAssets } from "./assetsLoader";
-import { ControlsScene, MenuScene } from "@/scenes";
+import {
+  ControlsScene,
+  LevelSelectScene,
+  MenuScene,
+  type MenuOptionId,
+} from "@/scenes";
 import type { PlayerInputMode } from "./PlayerInputMode";
+import { levels } from "@/levels";
 
 const HIGH_SCORE_STORAGE_KEY = "arkanoid.highScore";
 
@@ -38,7 +44,8 @@ export class Game {
   private accumulator: number = 0;
   private playerInputMode: PlayerInputMode = "mouse";
   private highScore: number = loadHighScore();
-  private menuSelection: 0 | 1 = 0;
+  private menuSelection: MenuOptionId = "play";
+  private singleLevelIndex: number | null = null;
 
   private onRendererResize = (width: number, height: number): void => {
     this.sceneManager?.resize(width, height);
@@ -86,8 +93,12 @@ export class Game {
 
   private registerScenes(assets: GameAssets): void {
     const handleReturnToMenu = () => {
-      this.menuSelection = 0;
-      this.sceneManager.show("menu");
+      if (this.singleLevelIndex !== null) {
+        this.sceneManager.show("levelSelect");
+      } else {
+        this.menuSelection = "play";
+        this.sceneManager.show("menu");
+      }
     };
     this.sceneManager.register("game", () => {
       return new GameScene(
@@ -101,22 +112,42 @@ export class Game {
           this.highScore = score;
           saveHighScore(score);
         },
+        this.singleLevelIndex,
       );
     });
     const handleGameStart = () => {
-      this.menuSelection = 0;
+      this.menuSelection = "play";
+      this.singleLevelIndex = null;
       this.sceneManager.show("game");
     };
+    const handleOpenLevelSelect = () => {
+      this.menuSelection = "selectLevel";
+      this.sceneManager.show("levelSelect");
+    };
     const handleOpenControls = () => {
-      this.menuSelection = 1;
+      this.menuSelection = "controls";
       this.sceneManager.show("controls");
     };
+    this.sceneManager.register(
+      "levelSelect",
+      () =>
+        new LevelSelectScene(
+          this.inputManager,
+          (index) => {
+            this.singleLevelIndex = index;
+            this.sceneManager.show("game");
+          },
+          () => this.sceneManager.show("menu"),
+          this.singleLevelIndex ?? levels[0]?.index,
+        ),
+    );
     this.sceneManager.register(
       "menu",
       () =>
         new MenuScene(
           this.inputManager,
           handleGameStart,
+          handleOpenLevelSelect,
           handleOpenControls,
           this.menuSelection,
         ),

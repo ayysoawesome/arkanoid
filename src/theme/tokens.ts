@@ -25,6 +25,7 @@ export const tokens = {
 export const textStyles = {
   menu: { fontFamily, fontSize: 32, fill: textColor },
   controlsTitle: { fontFamily, fontSize: 28, fill: textColor },
+  levelTile: { fontFamily, fontSize: 26, fill: textColor },
   selectedMode: { fontFamily, fontSize: 20, fill: textColor },
   overlayTitle: { fontFamily, fontSize: 40, fill: tokens.color.heading },
   overlayHint: { fontFamily, fontSize: 20, fill: textColor },

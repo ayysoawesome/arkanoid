@@ -147,8 +147,15 @@ export class GameScene extends Scene {
     private readonly onReturnToMenu: () => void,
     highScore: number,
     private readonly onHighScoreChange: (score: number) => void,
+    singleLevelIndex: number | null = null,
   ) {
     super();
+
+    if (singleLevelIndex === null) {
+      this.world.startCampaign();
+    } else {
+      this.world.startSingleLevel(singleLevelIndex);
+    }
 
     this.controls = new Controls(
       inputManager,
