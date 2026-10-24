@@ -29,6 +29,7 @@ export type GameAssets = Readonly<
   Record<keyof typeof gameAssetPaths, Texture>
 > &
   Readonly<Record<keyof typeof playerAnimationPaths, Texture[]>> & {
+    readonly playerSpawnFrames: Texture[];
     readonly powerUps: Readonly<Record<PowerUpKind, Texture[]>>;
     readonly brickHitFrames: Readonly<Record<"silver" | "gold", Texture[]>>;
     readonly enemyFrames: Readonly<Record<EnemyKind, Texture[]>>;
@@ -101,6 +102,7 @@ export async function loadGameAssets(): Promise<GameAssets> {
     powerUpEntries,
     brickHitEntries,
     enemyAnimations,
+    playerSpawnFrames,
   ] = await Promise.all([
     Promise.all(
       Object.entries(gameAssetPaths).map(async ([key, path]) => {
@@ -134,6 +136,11 @@ export async function loadGameAssets(): Promise<GameAssets> {
       }),
     ),
     loadEnemyAnimations(),
+    Promise.all(
+      ANIMATION_FRAMES.slice(0, 5).map((frame) =>
+        loadTexture(`/player/spawn-${frame}.png`),
+      ),
+    ),
   ]);
 
   return {
@@ -143,5 +150,6 @@ export async function loadGameAssets(): Promise<GameAssets> {
     brickHitFrames: Object.fromEntries(brickHitEntries),
     enemyFrames: enemyAnimations.enemyFrames,
     enemyExplosionFrames: enemyAnimations.enemyExplosionFrames,
+    playerSpawnFrames,
   } as GameAssets;
 }

@@ -32,11 +32,13 @@ type WorldViewState = {
   readonly laserShots: readonly LaserShot[];
   readonly enemies: readonly Enemy[];
   readonly exitOpen: boolean;
+  readonly playerSpawnFrame: number | null;
 };
 
 export class WorldView extends Container {
   private readonly playerView: AnimatedSprite;
   private readonly laserPlayerView: AnimatedSprite;
+  private readonly playerSpawnView: Sprite;
   private readonly ballsView = new Container();
   private readonly ballViews = new Map<Ball, Sprite>();
   private renderedPlayerMode: Player["mode"] = "normal";
@@ -83,6 +85,10 @@ export class WorldView extends Container {
     });
     this.laserPlayerView.visible = false;
 
+    this.playerSpawnView = new Sprite(assets.playerSpawnFrames[0]);
+    this.playerSpawnView.anchor.set(0.5);
+    this.playerSpawnView.visible = false;
+
     this.addChild(
       fieldView,
       this.exitView,
@@ -93,6 +99,7 @@ export class WorldView extends Container {
       this.laserShotsView,
       this.playerView,
       this.laserPlayerView,
+      this.playerSpawnView,
       this.ballsView,
     );
     this.sync(state);
@@ -106,9 +113,11 @@ export class WorldView extends Container {
     laserShots,
     enemies,
     exitOpen,
+    playerSpawnFrame,
   }: WorldViewState): void {
     this.exitView.visible = exitOpen;
-    this.syncPlayer(player);
+    this.syncPlayer(player, playerSpawnFrame);
+    this.ballsView.visible = playerSpawnFrame === null;
     this.syncBalls(balls);
     this.syncBricks(bricks);
     this.syncPowerUps(powerUps);
@@ -259,7 +268,7 @@ export class WorldView extends Container {
     }
   }
 
-  private syncPlayer(player: Player) {
+  private syncPlayer(player: Player, spawnFrame: number | null) {
     if (player.mode !== this.renderedPlayerMode) {
       this.renderedPlayerMode = player.mode;
       this.playerView.visible = player.mode !== "laser";
@@ -315,6 +324,14 @@ export class WorldView extends Container {
     }
     this.playerView.position.set(player.position.x, player.position.y);
     this.laserPlayerView.position.set(player.position.x, player.position.y);
+    this.playerView.visible = spawnFrame === null && player.mode !== "laser";
+    this.laserPlayerView.visible =
+      spawnFrame === null && player.mode === "laser";
+    this.playerSpawnView.visible = spawnFrame !== null;
+    if (spawnFrame !== null) {
+      this.playerSpawnView.texture = this.assets.playerSpawnFrames[spawnFrame];
+      this.playerSpawnView.position.set(player.position.x, player.position.y);
+    }
   }
 
   private syncBalls(balls: readonly Ball[]): void {

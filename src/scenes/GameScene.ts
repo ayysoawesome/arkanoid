@@ -139,6 +139,7 @@ export class GameScene extends Scene {
         laserShots: this.world.laserShots,
         enemies: this.world.enemies,
         exitOpen: this.world.exitOpen,
+        playerSpawnFrame: this.world.playerSpawnFrame,
       },
       assets,
     );
@@ -202,6 +203,7 @@ export class GameScene extends Scene {
       laserShots: this.world.laserShots,
       enemies: this.world.enemies,
       exitOpen: this.world.exitOpen,
+      playerSpawnFrame: this.world.playerSpawnFrame,
     });
   }
 }

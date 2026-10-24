@@ -25,6 +25,8 @@ type GameStatus = "playing" | GameOutcome;
 const SLOW_FACTOR = 0.75;
 const MAX_BALLS = 3;
 const DISRUPT_ANGLE = (20 * Math.PI) / 180;
+const SPAWN_FRAME_DURATION_SECONDS = 0.12;
+const SPAWN_FRAME_COUNT = 5;
 
 export class GameWorld {
   readonly player = new Player();
@@ -45,6 +47,7 @@ export class GameWorld {
   private remainingLives = worldConfig.initialLives;
   private gameStatus: GameStatus = "playing";
   private exitIsOpen = false;
+  private spawnElapsedSeconds: number | null = null;
 
   constructor() {
     this.events.subscribe(this.handleEvent);
@@ -67,6 +70,16 @@ export class GameWorld {
     dtSeconds: number;
   }): void {
     if (this.gameStatus !== "playing") return;
+    if (this.spawnElapsedSeconds !== null) {
+      this.spawnElapsedSeconds += dtSeconds;
+      if (
+        this.spawnElapsedSeconds >=
+        SPAWN_FRAME_DURATION_SECONDS * SPAWN_FRAME_COUNT
+      ) {
+        this.spawnElapsedSeconds = null;
+      }
+      return;
+    }
     const hadAttachedBall = this.balls.some((ball) => ball.attached);
     this.player.update(dtSeconds);
     this.playerControl.update({
@@ -143,6 +156,14 @@ export class GameWorld {
 
   get exitOpen(): boolean {
     return this.exitIsOpen;
+  }
+
+  get playerSpawnFrame(): number | null {
+    if (this.spawnElapsedSeconds === null) return null;
+    return Math.min(
+      SPAWN_FRAME_COUNT - 1,
+      Math.floor(this.spawnElapsedSeconds / SPAWN_FRAME_DURATION_SECONDS),
+    );
   }
 
   private startCampaign() {
@@ -294,6 +315,7 @@ export class GameWorld {
     this.player.reset();
     this.balls.length = 0;
     this.balls.push(new Ball(this.getBallSpawnPosition()));
+    this.spawnElapsedSeconds = 0;
   }
 
   private removeDestroyedEnemies(): void {
