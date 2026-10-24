@@ -1,0 +1,91 @@
+import { playerAnimationConfig } from "@/config";
+import type { GameAssets, PlayerPhaseFrame } from "@/core";
+import type { Player } from "@/entities";
+import { AnimatedSprite, Container, Sprite } from "pixi.js";
+
+type PlayerWidth = "normal" | "expanded";
+
+export class PlayerView extends Container {
+  private readonly body: AnimatedSprite;
+  private readonly phaseSprite: Sprite;
+  private renderedMode: Player["mode"] = "normal";
+  private renderedWidth: PlayerWidth = "normal";
+
+  constructor(private readonly assets: GameAssets) {
+    super();
+    this.body = new AnimatedSprite({
+      textures: assets.normalLights,
+      anchor: 0.5,
+      animationSpeed: playerAnimationConfig.normalLights.animationSpeed,
+      autoPlay: true,
+    });
+    this.phaseSprite = new Sprite(assets.playerSpawnFrames[0]);
+    this.phaseSprite.anchor.set(0.5);
+    this.phaseSprite.visible = false;
+    this.addChild(this.body, this.phaseSprite);
+  }
+
+  sync(
+    player: Player,
+    phase: PlayerPhaseFrame | null,
+    defeated: boolean,
+  ): void {
+    const width = player.width >= 40 ? "expanded" : "normal";
+    if (player.mode !== this.renderedMode) {
+      this.renderedMode = player.mode;
+      if (player.mode === "laser") {
+        this.playLaserTransform();
+      } else {
+        this.playNormalClip(width);
+      }
+    } else if (player.mode !== "laser" && width !== this.renderedWidth) {
+      this.playNormalClip(width);
+    }
+
+    if (
+      this.body.width !== player.width ||
+      this.body.height !== player.height
+    ) {
+      this.body.setSize(player.width, player.height);
+    }
+    this.position.set(player.position.x, player.position.y);
+    this.body.visible = phase === null && !defeated;
+    this.phaseSprite.visible = phase !== null;
+    if (phase !== null) {
+      this.phaseSprite.texture =
+        phase.kind === "spawn"
+          ? this.assets.playerSpawnFrames[phase.frame]
+          : this.assets.playerDestroyFrames[phase.frame];
+    }
+  }
+
+  private playNormalClip(width: PlayerWidth): void {
+    this.renderedWidth = width;
+    const key = width === "expanded" ? "expandedLights" : "normalLights";
+    this.body.onComplete = undefined;
+    this.body.textures = this.assets[key];
+    this.body.animationSpeed = playerAnimationConfig[key].animationSpeed;
+    this.body.loop = true;
+    this.body.gotoAndPlay(0);
+  }
+
+  private playLaserTransform(): void {
+    this.body.textures = [
+      this.assets.normalLights[0],
+      ...this.assets.laserTransform,
+    ];
+    this.body.animationSpeed =
+      playerAnimationConfig.laserTransform.animationSpeed;
+    this.body.loop = false;
+    this.body.onComplete = () => {
+      if (this.renderedMode !== "laser") return;
+      this.body.onComplete = undefined;
+      this.body.textures = this.assets.laserLights;
+      this.body.animationSpeed =
+        playerAnimationConfig.laserLights.animationSpeed;
+      this.body.loop = true;
+      this.body.gotoAndPlay(0);
+    };
+    this.body.gotoAndPlay(0);
+  }
+}

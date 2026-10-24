@@ -1,4 +1,9 @@
-import { exitBounds, fieldBounds, worldConfig } from "@/config";
+import {
+  exitBounds,
+  fieldBounds,
+  playerAnimationConfig,
+  worldConfig,
+} from "@/config";
 import {
   Ball,
   Brick,
@@ -19,17 +24,13 @@ import {
   ScoreSystem,
 } from "@/systems";
 import { EventQueue } from "./EventQueue";
+import type { PlayerPhaseFrame, PlayerPhaseKind } from "./PlayerPhase";
 import type { GameOutcome, WorldEvent } from "./WorldEvent";
 
 type GameStatus = "playing" | GameOutcome;
 const SLOW_FACTOR = 0.75;
 const MAX_BALLS = 3;
 const DISRUPT_ANGLE = (20 * Math.PI) / 180;
-const SPAWN_FRAME_DURATION_SECONDS = 0.12;
-const SPAWN_FRAME_COUNT = 5;
-const DESTROY_FRAME_DURATION_SECONDS = 0.12;
-const DESTROY_FRAME_COUNT = 7;
-
 export class GameWorld {
   readonly player = new Player();
   readonly balls: Ball[] = [];
@@ -49,8 +50,10 @@ export class GameWorld {
   private remainingLives = worldConfig.initialLives;
   private gameStatus: GameStatus = "playing";
   private exitIsOpen = false;
-  private spawnElapsedSeconds: number | null = null;
-  private destroyElapsedSeconds: number | null = null;
+  private playerPhase: {
+    kind: PlayerPhaseKind;
+    elapsedSeconds: number;
+  } | null = null;
 
   constructor() {
     this.events.subscribe(this.handleEvent);
@@ -73,25 +76,16 @@ export class GameWorld {
     dtSeconds: number;
   }): void {
     if (this.gameStatus !== "playing") return;
-    if (this.spawnElapsedSeconds !== null) {
-      this.spawnElapsedSeconds += dtSeconds;
-      if (
-        this.spawnElapsedSeconds >=
-        SPAWN_FRAME_DURATION_SECONDS * SPAWN_FRAME_COUNT
-      ) {
-        this.spawnElapsedSeconds = null;
-      }
-      return;
-    }
-    if (this.destroyElapsedSeconds !== null) {
-      this.destroyElapsedSeconds += dtSeconds;
-      if (
-        this.destroyElapsedSeconds >=
-        DESTROY_FRAME_DURATION_SECONDS * DESTROY_FRAME_COUNT
-      ) {
-        this.destroyElapsedSeconds = null;
-        this.handleBallLoss();
-        this.events.flush();
+    if (this.playerPhase !== null) {
+      const phase = this.playerPhase;
+      phase.elapsedSeconds += dtSeconds;
+      const clip = playerAnimationConfig[phase.kind];
+      if (phase.elapsedSeconds >= clip.frameDurationSeconds * clip.frameCount) {
+        this.playerPhase = null;
+        if (phase.kind === "destroy") {
+          this.handleBallLoss();
+          this.events.flush();
+        }
       }
       return;
     }
@@ -148,7 +142,7 @@ export class GameWorld {
       return;
     }
     if (this.balls.length === 0) {
-      this.destroyElapsedSeconds = 0;
+      this.playerPhase = { kind: "destroy", elapsedSeconds: 0 };
     }
   }
 
@@ -172,20 +166,17 @@ export class GameWorld {
     return this.exitIsOpen;
   }
 
-  get playerSpawnFrame(): number | null {
-    if (this.spawnElapsedSeconds === null) return null;
-    return Math.min(
-      SPAWN_FRAME_COUNT - 1,
-      Math.floor(this.spawnElapsedSeconds / SPAWN_FRAME_DURATION_SECONDS),
-    );
-  }
-
-  get playerDestroyFrame(): number | null {
-    if (this.destroyElapsedSeconds === null) return null;
-    return Math.min(
-      DESTROY_FRAME_COUNT - 1,
-      Math.floor(this.destroyElapsedSeconds / DESTROY_FRAME_DURATION_SECONDS),
-    );
+  get playerPhaseFrame(): PlayerPhaseFrame | null {
+    if (this.playerPhase === null) return null;
+    const { kind, elapsedSeconds } = this.playerPhase;
+    const clip = playerAnimationConfig[kind];
+    return {
+      kind,
+      frame: Math.min(
+        clip.frameCount - 1,
+        Math.floor(elapsedSeconds / clip.frameDurationSeconds),
+      ),
+    };
   }
 
   private startCampaign() {
@@ -337,7 +328,7 @@ export class GameWorld {
     this.player.reset();
     this.balls.length = 0;
     this.balls.push(new Ball(this.getBallSpawnPosition()));
-    this.spawnElapsedSeconds = 0;
+    this.playerPhase = { kind: "spawn", elapsedSeconds: 0 };
   }
 
   private removeDestroyedEnemies(): void {

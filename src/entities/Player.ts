@@ -54,6 +54,7 @@ export class Player {
 
   reset() {
     this.currentMode = "normal";
+    this.currentWidth = Player.NORMAL_WIDTH;
     this.position.x = worldConfig.width / 2;
     this.position.y = worldConfig.height - 16;
   }

@@ -1,4 +1,5 @@
 import { Assets, Texture } from "pixi.js";
+import { playerAnimationConfig } from "@/config";
 import {
   ENEMY_KINDS,
   POWER_UP_KINDS,
@@ -37,13 +38,20 @@ export type GameAssets = Readonly<
     readonly enemyExplosionFrames: Texture[];
   };
 
-const ANIMATION_FRAMES = ["01", "02", "03", "04", "05", "06"];
-const PLAYER_DESTROY_FRAMES = [...ANIMATION_FRAMES, "07"];
+const DEFAULT_ANIMATION_FRAME_COUNT = 6;
 
 async function loadTexture(path: string): Promise<Texture> {
   const texture = await Assets.load<Texture>(path);
   texture.source.scaleMode = "nearest";
   return texture;
+}
+
+function loadNumberedFrames(path: string, count: number): Promise<Texture[]> {
+  return Promise.all(
+    Array.from({ length: count }, (_, index) =>
+      loadTexture(`${path}-${String(index + 1).padStart(2, "0")}.png`),
+    ),
+  );
 }
 
 async function loadEnemyAnimations(): Promise<{
@@ -114,40 +122,37 @@ export async function loadGameAssets(): Promise<GameAssets> {
     ),
     Promise.all(
       Object.entries(playerAnimationPaths).map(async ([key, path]) => {
-        const frames = await Promise.all(
-          ANIMATION_FRAMES.map((frame) => loadTexture(`${path}-${frame}.png`)),
+        const frames = await loadNumberedFrames(
+          path,
+          playerAnimationConfig[key as keyof typeof playerAnimationPaths]
+            .frameCount,
         );
         return [key, frames] as const;
       }),
     ),
     Promise.all(
       POWER_UP_KINDS.map(async (kind) => {
-        const frames = await Promise.all(
-          ANIMATION_FRAMES.map((frame) =>
-            loadTexture(`/powerups/${kind}-${frame}.png`),
-          ),
+        const frames = await loadNumberedFrames(
+          `/powerups/${kind}`,
+          DEFAULT_ANIMATION_FRAME_COUNT,
         );
         return [kind, frames] as const;
       }),
     ),
     Promise.all(
       Object.entries(brickHitPaths).map(async ([kind, path]) => {
-        const frames = await Promise.all(
-          ANIMATION_FRAMES.map((frame) => loadTexture(`${path}-${frame}.png`)),
+        const frames = await loadNumberedFrames(
+          path,
+          DEFAULT_ANIMATION_FRAME_COUNT,
         );
         return [kind, frames] as const;
       }),
     ),
     loadEnemyAnimations(),
-    Promise.all(
-      ANIMATION_FRAMES.slice(0, 5).map((frame) =>
-        loadTexture(`/player/spawn-${frame}.png`),
-      ),
-    ),
-    Promise.all(
-      PLAYER_DESTROY_FRAMES.map((frame) =>
-        loadTexture(`/player/destroy-${frame}.png`),
-      ),
+    loadNumberedFrames("/player/spawn", playerAnimationConfig.spawn.frameCount),
+    loadNumberedFrames(
+      "/player/destroy",
+      playerAnimationConfig.destroy.frameCount,
     ),
   ]);
 

@@ -1,5 +1,5 @@
 import { exitBounds, worldConfig } from "@/config";
-import { GameAssets } from "@/core";
+import { GameAssets, type PlayerPhaseFrame } from "@/core";
 import {
   Ball,
   Brick,
@@ -10,6 +10,7 @@ import {
   PowerUp,
 } from "@/entities";
 import { AnimatedSprite, Container, Graphics, Sprite, Texture } from "pixi.js";
+import { PlayerView } from "./PlayerView";
 
 type ColoredBrickKind = Exclude<BrickKind, "silver" | "gold">;
 
@@ -32,20 +33,14 @@ type WorldViewState = {
   readonly laserShots: readonly LaserShot[];
   readonly enemies: readonly Enemy[];
   readonly exitOpen: boolean;
-  readonly playerSpawnFrame: number | null;
-  readonly playerDestroyFrame: number | null;
+  readonly playerPhaseFrame: PlayerPhaseFrame | null;
   readonly playerDefeated: boolean;
 };
 
 export class WorldView extends Container {
-  private readonly playerView: AnimatedSprite;
-  private readonly laserPlayerView: AnimatedSprite;
-  private readonly playerSpawnView: Sprite;
-  private readonly playerDestroyView: Sprite;
+  private readonly playerView: PlayerView;
   private readonly ballsView = new Container();
   private readonly ballViews = new Map<Ball, Sprite>();
-  private renderedPlayerMode: Player["mode"] = "normal";
-  private renderedPlayerWidth: "normal" | "expanded" = "normal";
   private bricksView = new Container();
   private readonly brickViews = new Map<Brick, Graphics | Sprite>();
   private readonly powerUpsView = new Container();
@@ -74,28 +69,7 @@ export class WorldView extends Container {
     this.exitView.position.set(exitBounds.left, exitBounds.top);
     this.exitView.setSize(worldConfig.exit.width, worldConfig.exit.height);
 
-    this.playerView = new AnimatedSprite({
-      textures: assets.normalLights,
-      anchor: 0.5,
-      animationSpeed: 0.1,
-      autoPlay: true,
-    });
-
-    this.laserPlayerView = new AnimatedSprite({
-      textures: [assets.normalLights[0], ...assets.laserTransform],
-      anchor: 0.5,
-      animationSpeed: 0.2,
-      loop: false,
-    });
-    this.laserPlayerView.visible = false;
-
-    this.playerSpawnView = new Sprite(assets.playerSpawnFrames[0]);
-    this.playerSpawnView.anchor.set(0.5);
-    this.playerSpawnView.visible = false;
-
-    this.playerDestroyView = new Sprite(assets.playerDestroyFrames[0]);
-    this.playerDestroyView.anchor.set(0.5);
-    this.playerDestroyView.visible = false;
+    this.playerView = new PlayerView(assets);
 
     this.addChild(
       fieldView,
@@ -106,9 +80,6 @@ export class WorldView extends Container {
       this.powerUpsView,
       this.laserShotsView,
       this.playerView,
-      this.laserPlayerView,
-      this.playerSpawnView,
-      this.playerDestroyView,
       this.ballsView,
     );
     this.sync(state);
@@ -122,19 +93,12 @@ export class WorldView extends Container {
     laserShots,
     enemies,
     exitOpen,
-    playerSpawnFrame,
-    playerDestroyFrame,
+    playerPhaseFrame,
     playerDefeated,
   }: WorldViewState): void {
     this.exitView.visible = exitOpen;
-    this.syncPlayer(
-      player,
-      playerSpawnFrame,
-      playerDestroyFrame,
-      playerDefeated,
-    );
-    this.ballsView.visible =
-      playerSpawnFrame === null && playerDestroyFrame === null;
+    this.playerView.sync(player, playerPhaseFrame, playerDefeated);
+    this.ballsView.visible = playerPhaseFrame === null;
     this.syncBalls(balls);
     this.syncBricks(bricks);
     this.syncPowerUps(powerUps);
@@ -196,21 +160,23 @@ export class WorldView extends Container {
 
   setPaused(paused: boolean): void {
     if (paused) {
-      this.pausedAnimations = [
-        this.playerView,
-        this.laserPlayerView,
-        ...this.powerUpViews.values(),
-        ...this.enemyViews.values(),
-        ...this.enemyEffects,
-        ...this.brickViews.values(),
-      ].filter(
-        (view): view is AnimatedSprite =>
-          view instanceof AnimatedSprite && view.playing,
-      );
+      this.pausedAnimations = [];
+      this.collectPlayingAnimations(this);
       this.pausedAnimations.forEach((view) => view.stop());
     } else {
       this.pausedAnimations.forEach((view) => view.play());
       this.pausedAnimations = [];
+    }
+  }
+
+  private collectPlayingAnimations(container: Container): void {
+    for (const child of container.children) {
+      if (child instanceof AnimatedSprite && child.playing) {
+        this.pausedAnimations.push(child);
+      }
+      if (child instanceof Container) {
+        this.collectPlayingAnimations(child);
+      }
     }
   }
 
@@ -302,84 +268,6 @@ export class WorldView extends Container {
         view.stop();
       }
       view.visible = !brick.destroyed;
-    }
-  }
-
-  private syncPlayer(
-    player: Player,
-    spawnFrame: number | null,
-    destroyFrame: number | null,
-    defeated: boolean,
-  ) {
-    if (player.mode !== this.renderedPlayerMode) {
-      this.renderedPlayerMode = player.mode;
-      this.playerView.visible = player.mode !== "laser";
-      this.laserPlayerView.visible = player.mode === "laser";
-
-      if (player.mode === "laser") {
-        this.playerView.stop();
-        this.laserPlayerView.textures = [
-          this.assets.normalLights[0],
-          ...this.assets.laserTransform,
-        ];
-        this.laserPlayerView.animationSpeed = 0.2;
-        this.laserPlayerView.loop = false;
-        this.laserPlayerView.onComplete = () => {
-          if (this.renderedPlayerMode !== "laser") return;
-
-          this.laserPlayerView.textures = this.assets.laserLights;
-          this.laserPlayerView.animationSpeed = 0.1;
-          this.laserPlayerView.loop = true;
-          this.laserPlayerView.gotoAndPlay(0);
-        };
-        this.laserPlayerView.gotoAndPlay(0);
-      } else {
-        this.laserPlayerView.stop();
-        this.laserPlayerView.onComplete = undefined;
-        this.playerView.gotoAndPlay(0);
-      }
-    }
-
-    if (player.mode !== "laser") {
-      const nextPlayerWidth = player.width >= 40 ? "expanded" : "normal";
-      if (nextPlayerWidth !== this.renderedPlayerWidth) {
-        this.renderedPlayerWidth = nextPlayerWidth;
-        this.playerView.textures =
-          nextPlayerWidth === "expanded"
-            ? this.assets.expandedLights
-            : this.assets.normalLights;
-        this.playerView.gotoAndPlay(0);
-      }
-    }
-
-    if (
-      this.playerView.width !== player.width ||
-      this.playerView.height !== player.height
-    ) {
-      this.playerView.setSize(player.width, player.height);
-    }
-    if (
-      this.laserPlayerView.width !== player.width ||
-      this.laserPlayerView.height !== player.height
-    ) {
-      this.laserPlayerView.setSize(player.width, player.height);
-    }
-    this.playerView.position.set(player.position.x, player.position.y);
-    this.laserPlayerView.position.set(player.position.x, player.position.y);
-    const playerVisible =
-      spawnFrame === null && destroyFrame === null && !defeated;
-    this.playerView.visible = playerVisible && player.mode !== "laser";
-    this.laserPlayerView.visible = playerVisible && player.mode === "laser";
-    this.playerSpawnView.visible = spawnFrame !== null;
-    if (spawnFrame !== null) {
-      this.playerSpawnView.texture = this.assets.playerSpawnFrames[spawnFrame];
-      this.playerSpawnView.position.set(player.position.x, player.position.y);
-    }
-    this.playerDestroyView.visible = destroyFrame !== null;
-    if (destroyFrame !== null) {
-      this.playerDestroyView.texture =
-        this.assets.playerDestroyFrames[destroyFrame];
-      this.playerDestroyView.position.set(player.position.x, player.position.y);
     }
   }
 
