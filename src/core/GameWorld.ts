@@ -27,6 +27,8 @@ const MAX_BALLS = 3;
 const DISRUPT_ANGLE = (20 * Math.PI) / 180;
 const SPAWN_FRAME_DURATION_SECONDS = 0.12;
 const SPAWN_FRAME_COUNT = 5;
+const DESTROY_FRAME_DURATION_SECONDS = 0.12;
+const DESTROY_FRAME_COUNT = 7;
 
 export class GameWorld {
   readonly player = new Player();
@@ -48,6 +50,7 @@ export class GameWorld {
   private gameStatus: GameStatus = "playing";
   private exitIsOpen = false;
   private spawnElapsedSeconds: number | null = null;
+  private destroyElapsedSeconds: number | null = null;
 
   constructor() {
     this.events.subscribe(this.handleEvent);
@@ -77,6 +80,18 @@ export class GameWorld {
         SPAWN_FRAME_DURATION_SECONDS * SPAWN_FRAME_COUNT
       ) {
         this.spawnElapsedSeconds = null;
+      }
+      return;
+    }
+    if (this.destroyElapsedSeconds !== null) {
+      this.destroyElapsedSeconds += dtSeconds;
+      if (
+        this.destroyElapsedSeconds >=
+        DESTROY_FRAME_DURATION_SECONDS * DESTROY_FRAME_COUNT
+      ) {
+        this.destroyElapsedSeconds = null;
+        this.handleBallLoss();
+        this.events.flush();
       }
       return;
     }
@@ -133,8 +148,7 @@ export class GameWorld {
       return;
     }
     if (this.balls.length === 0) {
-      this.handleBallLoss();
-      this.events.flush();
+      this.destroyElapsedSeconds = 0;
     }
   }
 
@@ -163,6 +177,14 @@ export class GameWorld {
     return Math.min(
       SPAWN_FRAME_COUNT - 1,
       Math.floor(this.spawnElapsedSeconds / SPAWN_FRAME_DURATION_SECONDS),
+    );
+  }
+
+  get playerDestroyFrame(): number | null {
+    if (this.destroyElapsedSeconds === null) return null;
+    return Math.min(
+      DESTROY_FRAME_COUNT - 1,
+      Math.floor(this.destroyElapsedSeconds / DESTROY_FRAME_DURATION_SECONDS),
     );
   }
 

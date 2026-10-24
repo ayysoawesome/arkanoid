@@ -140,6 +140,8 @@ export class GameScene extends Scene {
         enemies: this.world.enemies,
         exitOpen: this.world.exitOpen,
         playerSpawnFrame: this.world.playerSpawnFrame,
+        playerDestroyFrame: this.world.playerDestroyFrame,
+        playerDefeated: this.world.status === "defeat",
       },
       assets,
     );
@@ -204,6 +206,8 @@ export class GameScene extends Scene {
       enemies: this.world.enemies,
       exitOpen: this.world.exitOpen,
       playerSpawnFrame: this.world.playerSpawnFrame,
+      playerDestroyFrame: this.world.playerDestroyFrame,
+      playerDefeated: this.world.status === "defeat",
     });
   }
 }

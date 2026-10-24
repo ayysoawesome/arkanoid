@@ -33,12 +33,15 @@ type WorldViewState = {
   readonly enemies: readonly Enemy[];
   readonly exitOpen: boolean;
   readonly playerSpawnFrame: number | null;
+  readonly playerDestroyFrame: number | null;
+  readonly playerDefeated: boolean;
 };
 
 export class WorldView extends Container {
   private readonly playerView: AnimatedSprite;
   private readonly laserPlayerView: AnimatedSprite;
   private readonly playerSpawnView: Sprite;
+  private readonly playerDestroyView: Sprite;
   private readonly ballsView = new Container();
   private readonly ballViews = new Map<Ball, Sprite>();
   private renderedPlayerMode: Player["mode"] = "normal";
@@ -89,6 +92,10 @@ export class WorldView extends Container {
     this.playerSpawnView.anchor.set(0.5);
     this.playerSpawnView.visible = false;
 
+    this.playerDestroyView = new Sprite(assets.playerDestroyFrames[0]);
+    this.playerDestroyView.anchor.set(0.5);
+    this.playerDestroyView.visible = false;
+
     this.addChild(
       fieldView,
       this.exitView,
@@ -100,6 +107,7 @@ export class WorldView extends Container {
       this.playerView,
       this.laserPlayerView,
       this.playerSpawnView,
+      this.playerDestroyView,
       this.ballsView,
     );
     this.sync(state);
@@ -114,10 +122,18 @@ export class WorldView extends Container {
     enemies,
     exitOpen,
     playerSpawnFrame,
+    playerDestroyFrame,
+    playerDefeated,
   }: WorldViewState): void {
     this.exitView.visible = exitOpen;
-    this.syncPlayer(player, playerSpawnFrame);
-    this.ballsView.visible = playerSpawnFrame === null;
+    this.syncPlayer(
+      player,
+      playerSpawnFrame,
+      playerDestroyFrame,
+      playerDefeated,
+    );
+    this.ballsView.visible =
+      playerSpawnFrame === null && playerDestroyFrame === null;
     this.syncBalls(balls);
     this.syncBricks(bricks);
     this.syncPowerUps(powerUps);
@@ -268,7 +284,12 @@ export class WorldView extends Container {
     }
   }
 
-  private syncPlayer(player: Player, spawnFrame: number | null) {
+  private syncPlayer(
+    player: Player,
+    spawnFrame: number | null,
+    destroyFrame: number | null,
+    defeated: boolean,
+  ) {
     if (player.mode !== this.renderedPlayerMode) {
       this.renderedPlayerMode = player.mode;
       this.playerView.visible = player.mode !== "laser";
@@ -324,13 +345,20 @@ export class WorldView extends Container {
     }
     this.playerView.position.set(player.position.x, player.position.y);
     this.laserPlayerView.position.set(player.position.x, player.position.y);
-    this.playerView.visible = spawnFrame === null && player.mode !== "laser";
-    this.laserPlayerView.visible =
-      spawnFrame === null && player.mode === "laser";
+    const playerVisible =
+      spawnFrame === null && destroyFrame === null && !defeated;
+    this.playerView.visible = playerVisible && player.mode !== "laser";
+    this.laserPlayerView.visible = playerVisible && player.mode === "laser";
     this.playerSpawnView.visible = spawnFrame !== null;
     if (spawnFrame !== null) {
       this.playerSpawnView.texture = this.assets.playerSpawnFrames[spawnFrame];
       this.playerSpawnView.position.set(player.position.x, player.position.y);
+    }
+    this.playerDestroyView.visible = destroyFrame !== null;
+    if (destroyFrame !== null) {
+      this.playerDestroyView.texture =
+        this.assets.playerDestroyFrames[destroyFrame];
+      this.playerDestroyView.position.set(player.position.x, player.position.y);
     }
   }
 

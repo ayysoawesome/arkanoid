@@ -10,7 +10,7 @@ export const worldConfig: IWorldConfig = {
   width: 224,
   height: 256,
   borderWidth: 8,
-  initialLives: 1,
+  initialLives: 3,
   exit: { width: 24, height: 24 },
 } as const;
 
