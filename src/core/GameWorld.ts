@@ -51,6 +51,7 @@ export class GameWorld {
   private gameStatus: GameStatus = "playing";
   private singleLevel = false;
   private exitIsOpen = false;
+  private slowIsActive = false;
   private playerPhase: {
     kind: PlayerPhaseKind;
     elapsedSeconds: number;
@@ -234,7 +235,12 @@ export class GameWorld {
         event.brickKind,
         this.levelSystem.currentLevelIndex,
       );
-      this.powerUpSystem.handleBrickDestroyed(event, this.powerUps);
+      this.powerUpSystem.handleBrickDestroyed(event, this.powerUps, {
+        player: this.player,
+        ballCount: this.balls.length,
+        exitOpen: this.exitIsOpen,
+        slowActive: this.slowIsActive,
+      });
     }
 
     if (event.type === "enemyHit") {
@@ -271,6 +277,7 @@ export class GameWorld {
       for (const ball of this.balls) {
         ball.setSpeed(ball.currentSpeed * SLOW_FACTOR);
       }
+      this.slowIsActive = true;
       return;
     }
 
@@ -342,6 +349,7 @@ export class GameWorld {
   private resetPlayerAndBalls(): void {
     this.clearLaserShots();
     this.exitIsOpen = false;
+    this.slowIsActive = false;
     this.player.reset();
     this.balls.length = 0;
     this.balls.push(new Ball(this.getBallSpawnPosition()));
