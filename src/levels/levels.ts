@@ -1,44 +1,65 @@
-import { LevelDef } from "./types";
+import type { BrickKind } from "@/entities";
+import { ROUND_LAYOUTS } from "./layouts";
+import type { BrickDef, EnemySpawnDef, LevelDef } from "./types";
 
-export const level1: LevelDef = {
-  index: 1,
-  enemySpawns: [
+// Symbols follow the color legend in public/arkanoid.png.
+const BRICK_KINDS: Record<string, BrickKind | undefined> = {
+  W: "white",
+  O: "orange",
+  C: "light-blue",
+  G: "green",
+  R: "red",
+  B: "blue",
+  P: "pink",
+  Y: "yellow",
+  S: "silver",
+  X: "gold",
+};
+
+const ENEMY_SPAWNS: Record<number, EnemySpawnDef[] | undefined> = {
+  1: [
     { atSeconds: 2, kind: "blueShip", side: "left" },
     { atSeconds: 6, kind: "yellowShip", side: "right" },
     { atSeconds: 10, kind: "blueOrb", side: "left" },
     { atSeconds: 14, kind: "redOrb", side: "right" },
   ],
-  bricks: [
-    { row: 0, column: 0, kind: "silver" },
-    { row: 0, column: 1, kind: "silver", canDropCapsule: true },
-    { row: 0, column: 2, kind: "silver" },
-    { row: 0, column: 3, kind: "silver" },
-    { row: 0, column: 4, kind: "silver", canDropCapsule: true },
-    { row: 0, column: 5, kind: "silver" },
-    { row: 0, column: 6, kind: "silver", canDropCapsule: true },
-    { row: 0, column: 7, kind: "silver" },
-    { row: 0, column: 8, kind: "silver" },
-    { row: 0, column: 9, kind: "silver" },
-    { row: 0, column: 10, kind: "silver" },
-    { row: 1, column: 0, kind: "red", canDropCapsule: true },
-    { row: 1, column: 1, kind: "red" },
-    { row: 1, column: 2, kind: "red" },
-    { row: 1, column: 3, kind: "red" },
-    { row: 1, column: 4, kind: "red" },
-    { row: 1, column: 5, kind: "red", canDropCapsule: true },
-    { row: 1, column: 6, kind: "red" },
-    { row: 1, column: 7, kind: "red" },
-    { row: 1, column: 8, kind: "red" },
-    { row: 1, column: 9, kind: "red" },
-    { row: 1, column: 10, kind: "red" },
-  ],
+  2: [{ atSeconds: 2, kind: "redOrb", side: "left" }],
 };
 
-export const level2: LevelDef = {
-  index: 2,
-  enemySpawns: [{ atSeconds: 2, kind: "redOrb", side: "left" }],
-  bricks: [
-    { row: 1, column: 0, kind: "red" },
-    { row: 0, column: 1, kind: "red" },
-  ],
-};
+function bricksFromLayout(
+  layout: readonly string[],
+  levelIndex: number,
+): BrickDef[] {
+  const bricks: BrickDef[] = [];
+  let breakableCount = 0;
+
+  layout.forEach((line, row) => {
+    if (line.length !== 11) {
+      throw new Error(`Round ${levelIndex}, row ${row} must have 11 columns`);
+    }
+
+    for (const [column, symbol] of [...line].entries()) {
+      if (symbol === ".") continue;
+      const kind = BRICK_KINDS[symbol];
+      if (!kind) {
+        throw new Error(`Unknown brick ${symbol} in round ${levelIndex}`);
+      }
+
+      const canDropCapsule = kind !== "gold" && breakableCount++ % 12 === 5;
+      bricks.push({ row, column, kind, canDropCapsule });
+    }
+  });
+
+  return bricks;
+}
+
+export const levels: readonly LevelDef[] = ROUND_LAYOUTS.map(
+  (layout, index) => {
+    const levelIndex = index + 1;
+    return {
+      index: levelIndex,
+      bricks: bricksFromLayout(layout, levelIndex),
+      enemySpawns: ENEMY_SPAWNS[levelIndex],
+    };
+  },
+);
