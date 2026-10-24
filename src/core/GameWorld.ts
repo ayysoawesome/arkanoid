@@ -68,6 +68,7 @@ export class GameWorld {
   }): void {
     if (this.gameStatus !== "playing") return;
     const hadAttachedBall = this.balls.some((ball) => ball.attached);
+    this.player.update(dtSeconds);
     this.playerControl.update({
       player: this.player,
       direction,

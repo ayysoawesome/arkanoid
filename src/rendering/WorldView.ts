@@ -40,6 +40,7 @@ export class WorldView extends Container {
   private readonly ballsView = new Container();
   private readonly ballViews = new Map<Ball, Sprite>();
   private renderedPlayerMode: Player["mode"] = "normal";
+  private renderedPlayerWidth: "normal" | "expanded" = "normal";
   private bricksView = new Container();
   private readonly brickViews = new Map<Brick, Graphics | Sprite>();
   private readonly powerUpsView = new Container();
@@ -284,8 +285,16 @@ export class WorldView extends Container {
       } else {
         this.laserPlayerView.stop();
         this.laserPlayerView.onComplete = undefined;
+        this.playerView.gotoAndPlay(0);
+      }
+    }
+
+    if (player.mode !== "laser") {
+      const nextPlayerWidth = player.width >= 40 ? "expanded" : "normal";
+      if (nextPlayerWidth !== this.renderedPlayerWidth) {
+        this.renderedPlayerWidth = nextPlayerWidth;
         this.playerView.textures =
-          player.mode === "expanded"
+          nextPlayerWidth === "expanded"
             ? this.assets.expandedLights
             : this.assets.normalLights;
         this.playerView.gotoAndPlay(0);
@@ -297,6 +306,12 @@ export class WorldView extends Container {
       this.playerView.height !== player.height
     ) {
       this.playerView.setSize(player.width, player.height);
+    }
+    if (
+      this.laserPlayerView.width !== player.width ||
+      this.laserPlayerView.height !== player.height
+    ) {
+      this.laserPlayerView.setSize(player.width, player.height);
     }
     this.playerView.position.set(player.position.x, player.position.y);
     this.laserPlayerView.position.set(player.position.x, player.position.y);
