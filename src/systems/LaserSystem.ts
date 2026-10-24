@@ -3,7 +3,7 @@ import type { BrickHitEvent, EnemyHitEvent } from "@/core/WorldEvent";
 import { Brick, Enemy, LaserShot, Player } from "@/entities";
 
 const SHOT_COOLDOWN_SECONDS = 0.2;
-const MUZZLE_INSET = 4;
+const MUZZLE_INSET = 9;
 
 export class LaserSystem {
   private cooldownRemaining = 0;
