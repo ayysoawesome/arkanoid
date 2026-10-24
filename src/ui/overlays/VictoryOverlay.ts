@@ -1,24 +1,17 @@
 import { Container, Graphics, Text } from "pixi.js";
+import { textStyles, tokens } from "@/theme/tokens";
 
 export class VictoryOverlay extends Container {
   private readonly shade = new Graphics();
 
   private readonly title = new Text({
     text: "Victory",
-    style: {
-      fontFamily: "PixelOperator8",
-      fontSize: 40,
-      fill: "#ff6666",
-    },
+    style: textStyles.overlayTitle,
   });
 
   private readonly hint = new Text({
     text: "SPACE - MENU",
-    style: {
-      fontFamily: "PixelOperator8",
-      fontSize: 20,
-      fill: "#ffffff",
-    },
+    style: textStyles.overlayHint,
   });
 
   constructor() {
@@ -38,7 +31,7 @@ export class VictoryOverlay extends Container {
     this.shade
       .clear()
       .rect(0, 0, width, height)
-      .fill({ color: 0x000000, alpha: 0.75 });
+      .fill({ color: tokens.color.shade, alpha: tokens.overlay.shadeAlpha });
 
     this.title.position.set(width / 2, height / 2 - 20);
     this.hint.position.set(width / 2, height / 2 + 28);

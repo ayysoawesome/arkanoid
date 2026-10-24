@@ -1,23 +1,23 @@
 import { Controls, InputManager, Scene, type PlayerInputMode } from "@/core";
 import { createMenuLabel } from "@/ui/menu/createMenuLabel";
-import { Container, Text } from "pixi.js";
+import { MenuButton } from "@/ui/menu/MenuButton";
+import { textStyles, tokens } from "@/theme/tokens";
+import { Container } from "pixi.js";
 
 type ControlsAction = "previous" | "next" | "confirm";
 
 export class ControlsScene extends Scene {
   private readonly controls: Controls<ControlsAction>;
   private readonly menuContainer = new Container();
-  private readonly title = createMenuLabel("CONTROLS", 28);
-  private readonly keyboardLabel = createMenuLabel("KEYBOARD");
-  private readonly mouseLabel = createMenuLabel("MOUSE");
-  private readonly backLabel = createMenuLabel("BACK");
-  private readonly selectedModeLabel = createMenuLabel("", 20);
-  private readonly selectionMarker = createMenuLabel(">");
-  private readonly options = [
-    this.keyboardLabel,
-    this.mouseLabel,
-    this.backLabel,
-  ];
+  private readonly title = createMenuLabel(
+    "CONTROLS",
+    textStyles.controlsTitle,
+  );
+  private readonly selectedModeLabel = createMenuLabel(
+    "",
+    textStyles.selectedMode,
+  );
+  private readonly options: MenuButton[];
   private selectedIndex: number;
 
   constructor(
@@ -47,61 +47,56 @@ export class ControlsScene extends Scene {
       },
     });
 
-    const rowStep = this.keyboardLabel.height + 12;
-    this.title.y = -rowStep * 2;
-    this.keyboardLabel.y = -rowStep;
-    this.mouseLabel.y = 0;
-    this.backLabel.y = rowStep;
-    this.selectedModeLabel.y = rowStep * 2;
+    this.options = [
+      new MenuButton(
+        "KEYBOARD",
+        () => this.selectMode("keyboard"),
+        () => this.select(0),
+      ),
+      new MenuButton(
+        "MOUSE",
+        () => this.selectMode("mouse"),
+        () => this.select(1),
+      ),
+      new MenuButton("BACK", this.onBack, () => this.select(2)),
+    ];
+    const rowStep = tokens.button.height + tokens.button.rowGap;
+    const sectionGap = tokens.controls.sectionGap;
+    this.title.y = -rowStep * 2 - sectionGap;
+    this.options[0].y = -rowStep;
+    this.options[1].y = 0;
+    this.options[2].y = rowStep + sectionGap;
+    this.selectedModeLabel.y = rowStep * 2 + sectionGap;
 
-    this.configureOption(this.keyboardLabel, 0, () =>
-      this.selectMode("keyboard"),
-    );
-    this.configureOption(this.mouseLabel, 1, () => this.selectMode("mouse"));
-    this.configureOption(this.backLabel, 2, this.onBack);
     this.menuContainer.addChild(
       this.title,
-      this.keyboardLabel,
-      this.mouseLabel,
-      this.backLabel,
+      ...this.options,
       this.selectedModeLabel,
-      this.selectionMarker,
     );
     this.addChild(this.menuContainer);
     this.updateSelectedModeLabel();
-    this.updateSelectionMarker();
+    this.updateSelection();
   }
 
   resize(width: number, height: number): void {
     this.menuContainer.position.set(width / 2, height / 2);
   }
 
-  private configureOption(
-    label: Text,
-    index: number,
-    activate: () => void,
-  ): void {
-    label.eventMode = "static";
-    label.cursor = "pointer";
-    label.on("pointerover", () => {
-      this.selectedIndex = index;
-      this.updateSelectionMarker();
-    });
-    label.on("pointertap", activate);
+  private select(index: number): void {
+    this.selectedIndex = index;
+    this.updateSelection();
   }
 
   private moveSelection(direction: number): void {
     this.selectedIndex =
       (this.selectedIndex + direction + this.options.length) %
       this.options.length;
-    this.updateSelectionMarker();
+    this.updateSelection();
   }
 
-  private updateSelectionMarker(): void {
-    const widestLabel = Math.max(...this.options.map((label) => label.width));
-    this.selectionMarker.position.set(
-      -widestLabel / 2 - this.selectionMarker.width / 2 - 8,
-      this.options[this.selectedIndex].y,
+  private updateSelection(): void {
+    this.options.forEach((option, index) =>
+      option.setSelected(index === this.selectedIndex),
     );
   }
 
@@ -116,9 +111,7 @@ export class ControlsScene extends Scene {
   }
 
   private confirmSelection(): void {
-    if (this.selectedIndex === 0) this.selectMode("keyboard");
-    else if (this.selectedIndex === 1) this.selectMode("mouse");
-    else this.onBack();
+    this.options[this.selectedIndex].activate();
   }
 
   update(): void {

@@ -7,12 +7,37 @@ import { GameAssets, loadGameAssets } from "./assetsLoader";
 import { ControlsScene, MenuScene } from "@/scenes";
 import type { PlayerInputMode } from "./PlayerInputMode";
 
+const HIGH_SCORE_STORAGE_KEY = "arkanoid.highScore";
+
+function loadHighScore(): number {
+  try {
+    const storedValue = localStorage.getItem(HIGH_SCORE_STORAGE_KEY);
+    if (storedValue === null) return gameConfig.initialHighScore;
+
+    const score = Number(storedValue);
+    return Number.isSafeInteger(score) && score >= 0
+      ? score
+      : gameConfig.initialHighScore;
+  } catch {
+    return gameConfig.initialHighScore;
+  }
+}
+
+function saveHighScore(score: number): void {
+  try {
+    localStorage.setItem(HIGH_SCORE_STORAGE_KEY, String(score));
+  } catch {
+    // Keep the updated score for this session if storage is unavailable.
+  }
+}
+
 export class Game {
   readonly app = new Application();
   private sceneManager!: SceneManager;
   private inputManager!: InputManager;
   private accumulator: number = 0;
   private playerInputMode: PlayerInputMode = "mouse";
+  private highScore: number = loadHighScore();
   private menuSelection: 0 | 1 = 0;
 
   private onRendererResize = (width: number, height: number): void => {
@@ -70,6 +95,12 @@ export class Game {
         assets,
         this.playerInputMode,
         handleReturnToMenu,
+        this.highScore,
+        (score) => {
+          if (score <= this.highScore) return;
+          this.highScore = score;
+          saveHighScore(score);
+        },
       );
     });
     const handleGameStart = () => {

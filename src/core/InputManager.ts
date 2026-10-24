@@ -4,6 +4,7 @@ const inputKeys = [
   "ArrowUp",
   "ArrowDown",
   "Space",
+  "Escape",
 ] as const;
 const devInputKeys = ["KeyL", "KeyE"] as const;
 

@@ -56,6 +56,7 @@ export class WorldView extends Container {
   private readonly enemyViews = new Map<Enemy, AnimatedSprite>();
   private readonly enemyEffectsView = new Container();
   private readonly enemyEffects = new Set<AnimatedSprite>();
+  private pausedAnimations: AnimatedSprite[] = [];
   private readonly exitView: Sprite;
 
   constructor(
@@ -191,6 +192,26 @@ export class WorldView extends Container {
       view.destroy();
     }
     this.enemyEffects.clear();
+  }
+
+  setPaused(paused: boolean): void {
+    if (paused) {
+      this.pausedAnimations = [
+        this.playerView,
+        this.laserPlayerView,
+        ...this.powerUpViews.values(),
+        ...this.enemyViews.values(),
+        ...this.enemyEffects,
+        ...this.brickViews.values(),
+      ].filter(
+        (view): view is AnimatedSprite =>
+          view instanceof AnimatedSprite && view.playing,
+      );
+      this.pausedAnimations.forEach((view) => view.stop());
+    } else {
+      this.pausedAnimations.forEach((view) => view.play());
+      this.pausedAnimations = [];
+    }
   }
 
   playBrickHit(brick: Brick): void {
