@@ -15,14 +15,14 @@ import { PlayerView } from "./PlayerView";
 type ColoredBrickKind = Exclude<BrickKind, "silver" | "gold">;
 
 const BRICK_COLORS: Record<ColoredBrickKind, number> = {
-  white: 0xf2f2f2,
-  orange: 0xff9000,
-  "light-blue": 0x00ffff,
-  green: 0x00ff00,
-  red: 0xff0000,
-  blue: 0x0070ff,
-  pink: 0xff00ff,
-  yellow: 0xffff00,
+  white: 0xffffff,
+  orange: 0xff8473,
+  "light-blue": 0x63adff,
+  green: 0x8cd600,
+  red: 0xb53121,
+  blue: 0x1863d6,
+  pink: 0xff6bce,
+  yellow: 0xe79c21,
 };
 
 type WorldViewState = {
