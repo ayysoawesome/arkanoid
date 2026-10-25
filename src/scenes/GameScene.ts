@@ -5,6 +5,7 @@ import {
   GameWorld,
   InputManager,
   type PlayerInputMode,
+  type GameOutcome,
   Scene,
   type WorldEvent,
   type WorldState,
@@ -36,6 +37,18 @@ type GameAction =
   | "confirmPauseOption"
   | "returnToMenu";
 type ControlMode = "playing" | "paused" | "transition" | "result";
+type ModeTransition =
+  | { mode: "playing" }
+  | { mode: "paused" }
+  | { mode: "transition"; levelIndex: number }
+  | { mode: "result"; outcome: GameOutcome };
+
+const ALLOWED_MODE_TRANSITIONS: Record<ControlMode, readonly ControlMode[]> = {
+  playing: ["paused", "transition", "result"],
+  paused: ["playing"],
+  transition: ["playing"],
+  result: [],
+};
 
 export class GameScene extends Scene {
   private readonly world = new GameWorld();
@@ -144,12 +157,9 @@ export class GameScene extends Scene {
     } else if (event.type === "levelStarted") {
       this.worldView.clearEnemyExplosions();
       this.hud.setRound(event.levelIndex);
-      this.showLevelTransition(event.levelIndex);
+      this.enterMode({ mode: "transition", levelIndex: event.levelIndex });
     } else if (event.type === "gameEnded") {
-      this.defeatOverlay.visible = event.outcome === "defeat";
-      this.victoryOverlay.visible = event.outcome === "victory";
-      this.controlMode = "result";
-      this.controls.setBindings(this.resultBindings);
+      this.enterMode({ mode: "result", outcome: event.outcome });
     }
   };
 
@@ -223,7 +233,6 @@ export class GameScene extends Scene {
     const state = this.world.state;
     this.worldView.sync(state);
     this.updateLaunchHint(state);
-    this.worldView.setPaused(true);
   }
 
   resize(width: number, height: number): void {
@@ -277,9 +286,6 @@ export class GameScene extends Scene {
     const state = this.world.state;
     this.worldView.sync(state);
     this.updateLaunchHint(state);
-    if (this.levelTransitionOverlay.visible) {
-      this.worldView.setPaused(true);
-    }
   }
 
   private updateLaunchHint(state: WorldState = this.world.state): void {
@@ -299,45 +305,65 @@ export class GameScene extends Scene {
     );
   }
 
-  private showLevelTransition(levelIndex: number): void {
-    this.controlMode = "transition";
-    this.transitionSecondsRemaining = LEVEL_TRANSITION_SECONDS;
-    this.pendingMouseAction = false;
-    this.mouseX = null;
-    this.controls.setBindings({});
-    this.levelTransitionOverlay.show(levelIndex);
-  }
-
   private finishLevelTransition(): void {
-    this.levelTransitionOverlay.visible = false;
-    this.worldView.setPaused(false);
-    this.controlMode = "playing";
-    this.controls.setBindings(
-      this.inputMode === "keyboard"
-        ? { ...this.playingBindings, ...this.testBindings }
-        : { ...this.pauseBinding, ...this.testBindings },
-    );
+    this.enterMode({ mode: "playing" });
   }
 
   private pause(): void {
     if (this.controlMode !== "playing") return;
-    this.controlMode = "paused";
-    this.pendingMouseAction = false;
-    this.worldView.setPaused(true);
-    this.pauseOverlay.show();
-    this.controls.setBindings(this.pauseBindings);
+    this.enterMode({ mode: "paused" });
   }
 
   private resume(): void {
     if (this.controlMode !== "paused") return;
-    this.controlMode = "playing";
-    this.worldView.setPaused(false);
+    this.enterMode({ mode: "playing" });
+  }
+
+  private enterMode(transition: ModeTransition): void {
+    const { mode } = transition;
+    if (!ALLOWED_MODE_TRANSITIONS[this.controlMode].includes(mode)) {
+      throw new Error(
+        `Invalid scene transition: ${this.controlMode} -> ${mode}`,
+      );
+    }
+    if (
+      (mode === "result" && this.world.status !== transition.outcome) ||
+      (mode !== "result" && this.world.status !== "playing")
+    ) {
+      throw new Error(`Scene mode ${mode} conflicts with world status`);
+    }
+
+    this.controlMode = mode;
+    this.pendingMouseAction = false;
     this.mouseX = null;
+    this.transitionSecondsRemaining =
+      mode === "transition" ? LEVEL_TRANSITION_SECONDS : 0;
+
     this.pauseOverlay.visible = false;
-    this.controls.setBindings(
-      this.inputMode === "keyboard"
-        ? { ...this.playingBindings, ...this.testBindings }
-        : { ...this.pauseBinding, ...this.testBindings },
-    );
+    this.levelTransitionOverlay.visible = false;
+    this.defeatOverlay.visible =
+      mode === "result" && transition.outcome === "defeat";
+    this.victoryOverlay.visible =
+      mode === "result" && transition.outcome === "victory";
+
+    if (mode === "paused") this.pauseOverlay.show();
+    if (mode === "transition") {
+      this.levelTransitionOverlay.show(transition.levelIndex);
+    }
+
+    this.worldView.setPaused(mode === "paused" || mode === "transition");
+    if (mode === "playing") {
+      this.controls.setBindings(
+        this.inputMode === "keyboard"
+          ? { ...this.playingBindings, ...this.testBindings }
+          : { ...this.pauseBinding, ...this.testBindings },
+      );
+    } else if (mode === "paused") {
+      this.controls.setBindings(this.pauseBindings);
+    } else if (mode === "result") {
+      this.controls.setBindings(this.resultBindings);
+    } else {
+      this.controls.setBindings({});
+    }
   }
 }

@@ -32,9 +32,18 @@ import type { EnemyState, WorldState } from "./WorldState";
 import type { GameOutcome, InternalWorldEvent, WorldEvent } from "./WorldEvent";
 
 type GameStatus = "playing" | GameOutcome;
+
+type WorldUpdateInput = {
+  direction: number;
+  targetX: number | null;
+  actionPressed: boolean;
+  dtSeconds: number;
+};
+
 const SLOW_FACTOR = 0.75;
 const MAX_BALLS = 3;
 const DISRUPT_ANGLE = (20 * Math.PI) / 180;
+
 export class GameWorld {
   readonly #player = new Player();
   readonly #balls: Ball[] = [];
@@ -147,32 +156,51 @@ export class GameWorld {
     if (import.meta.env.DEV) this.applyPowerUp(kind);
   }
 
-  update({
-    direction,
-    targetX,
-    actionPressed,
-    dtSeconds,
-  }: {
-    direction: number;
-    targetX: number | null;
-    actionPressed: boolean;
-    dtSeconds: number;
-  }): void {
+  update(input: WorldUpdateInput): void {
     if (this.gameStatus !== "playing") return;
     if (this.playerPhase !== null) {
-      const phase = this.playerPhase;
-      phase.elapsedSeconds += dtSeconds;
-      const clip = playerAnimationConfig[phase.kind];
-      if (phase.elapsedSeconds >= clip.frameDurationSeconds * clip.frameCount) {
-        this.playerPhase = null;
-        if (phase.kind === "destroy") {
-          this.handleBallLoss();
-          this.events.flush();
-        }
-      }
+      this.advancePlayerPhase(input.dtSeconds);
       return;
     }
+
     const hadAttachedBall = this.#balls.some((ball) => ball.attached);
+    this.updatePlayerAndEnemies(input);
+    this.updateBalls(input.actionPressed, input.dtSeconds);
+    this.events.flush();
+    this.removeDestroyedEnemies();
+
+    this.updateLasers(
+      this.shouldRequestLaserFire(input.actionPressed, hadAttachedBall),
+      input.dtSeconds,
+    );
+    this.events.flush();
+    this.removeDestroyedEnemies();
+
+    this.updatePowerUps(input.dtSeconds);
+    this.events.flush();
+    this.resolveLevelCompletionOrBallLoss();
+  }
+
+  private advancePlayerPhase(dtSeconds: number): void {
+    const phase = this.playerPhase;
+    if (phase === null) return;
+
+    phase.elapsedSeconds += dtSeconds;
+    const clip = playerAnimationConfig[phase.kind];
+    if (phase.elapsedSeconds >= clip.frameDurationSeconds * clip.frameCount) {
+      this.playerPhase = null;
+      if (phase.kind === "destroy") {
+        this.handleBallLoss();
+        this.events.flush();
+      }
+    }
+  }
+
+  private updatePlayerAndEnemies({
+    direction,
+    targetX,
+    dtSeconds,
+  }: WorldUpdateInput): void {
     this.#player.update(dtSeconds);
     this.playerControl.update({
       player: this.#player,
@@ -188,7 +216,9 @@ export class GameWorld {
       this.#bricks,
       dtSeconds,
     );
+  }
 
+  private updateBalls(actionPressed: boolean, dtSeconds: number): void {
     for (const ball of this.#balls) {
       this.ballPhysics.update({
         player: this.#player,
@@ -200,25 +230,35 @@ export class GameWorld {
       });
     }
     this.removeLostBalls();
-    this.events.flush();
-    this.removeDestroyedEnemies();
+  }
+
+  private shouldRequestLaserFire(
+    actionPressed: boolean,
+    hadAttachedBall: boolean,
+  ): boolean {
+    return actionPressed && !hadAttachedBall && this.#balls.length > 0;
+  }
+
+  private updateLasers(fireRequested: boolean, dtSeconds: number): void {
     this.laserSystem.update({
       shots: this.#laserShots,
       player: this.#player,
       bricks: this.#bricks,
       enemies: this.#enemies,
-      fireRequested:
-        actionPressed && !hadAttachedBall && this.#balls.length > 0,
+      fireRequested,
       dtSeconds,
     });
-    this.events.flush();
-    this.removeDestroyedEnemies();
+  }
+
+  private updatePowerUps(dtSeconds: number): void {
     this.powerUpSystem.update({
       powerUpArr: this.#powerUps,
       dtSeconds,
       player: this.#player,
     });
-    this.events.flush();
+  }
+
+  private resolveLevelCompletionOrBallLoss(): void {
     if (this.levelSystem.isCleared(this.#bricks)) {
       this.completeLevel("cleared");
       return;

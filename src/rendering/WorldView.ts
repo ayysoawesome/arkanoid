@@ -28,7 +28,8 @@ export class WorldView extends Container {
   private readonly enemyViews = new Map<number, EnemyView>();
   private readonly enemyEffectsView = new Container();
   private readonly enemyEffects = new Set<EnemyView>();
-  private pausedAnimations: AnimatedSprite[] = [];
+  private readonly pausedAnimations = new Set<AnimatedSprite>();
+  private animationsPaused = false;
   private readonly fieldView: FieldView;
 
   constructor(
@@ -75,6 +76,7 @@ export class WorldView extends Container {
     this.syncPowerUps(powerUps);
     this.syncLaserShots(laserShots);
     this.syncEnemies(enemies);
+    if (this.animationsPaused) this.pausePlayingAnimations();
   }
 
   private syncEnemies(enemies: readonly EnemyState[]): void {
@@ -125,20 +127,26 @@ export class WorldView extends Container {
   }
 
   setPaused(paused: boolean): void {
+    this.animationsPaused = paused;
     if (paused) {
-      this.pausedAnimations = [];
-      this.collectPlayingAnimations(this);
-      this.pausedAnimations.forEach((view) => view.stop());
+      this.pausePlayingAnimations();
     } else {
-      this.pausedAnimations.forEach((view) => view.play());
-      this.pausedAnimations = [];
+      this.pausedAnimations.forEach((view) => {
+        if (!view.destroyed) view.play();
+      });
+      this.pausedAnimations.clear();
     }
+  }
+
+  private pausePlayingAnimations(): void {
+    this.collectPlayingAnimations(this);
   }
 
   private collectPlayingAnimations(container: Container): void {
     for (const child of container.children) {
       if (child instanceof AnimatedSprite && child.playing) {
-        this.pausedAnimations.push(child);
+        this.pausedAnimations.add(child);
+        child.stop();
       }
       if (child instanceof Container) {
         this.collectPlayingAnimations(child);
