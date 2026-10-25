@@ -3,7 +3,7 @@ import { SceneManager } from "./SceneManager";
 import { GameScene } from "@/scenes/GameScene";
 import { InputManager } from "./InputManager";
 import { gameConfig } from "@/config";
-import { GameAssets, loadGameAssets } from "./assetsLoader";
+import { AssetLoader, type GameAssets } from "./assetsLoader";
 import {
   ControlsScene,
   LevelSelectScene,
@@ -64,7 +64,7 @@ export class Game {
       src: "/fonts/PixelOperator8.ttf",
       data: { family: "PixelOperator8" },
     });
-    const assets = await loadGameAssets();
+    const assets = await new AssetLoader().load();
     this.registerScenes(assets);
     this.sceneManager.resize(this.app.screen.width, this.app.screen.height);
     this.sceneManager.show("menu");

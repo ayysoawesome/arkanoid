@@ -1,18 +1,15 @@
 import { Assets, Texture } from "pixi.js";
 import { playerAnimationConfig } from "@/config";
-import {
-  ENEMY_KINDS,
-  POWER_UP_KINDS,
-  type EnemyKind,
-  type PowerUpKind,
-} from "@/entities";
+import type { EnemyKind, PowerUpKind } from "@/entities";
 
-const gameAssetPaths = {
+type FrameSet = { basePath: string; count: number };
+
+const gamePaths = {
   laserShot: "/player/laser-shot.png",
-  ball: "ball/ball.png",
+  ball: "/ball/ball.png",
 } as const;
 
-const fieldAssetPaths = {
+const fieldPaths = {
   background: "/fields/backgrounds/blue-diagonal.png",
   cornerLeft: "/fields/frame/corner-left.png",
   cornerRight: "/fields/frame/corner-right.png",
@@ -22,177 +19,153 @@ const fieldAssetPaths = {
   closedExit: "/fields/frame/exit-closed.png",
 } as const;
 
-const playerAnimationPaths = {
-  normalLights: "/player/normal-lights",
-  expandedLights: "/player/expanded-lights",
-  laserTransform: "/player/laser-transform",
-  laserLights: "/player/laser-lights",
+const fieldFramePaths = {
+  exitFrames: { basePath: "/fields/exit-frames/exit", count: 3 },
+  gateFrames: { basePath: "/fields/gate-frames/gate", count: 3 },
 } as const;
+
+const playerAnimationPaths = {
+  normalLights: {
+    basePath: "/player/normal-lights",
+    count: playerAnimationConfig.normalLights.frameCount,
+  },
+  expandedLights: {
+    basePath: "/player/expanded-lights",
+    count: playerAnimationConfig.expandedLights.frameCount,
+  },
+  laserTransform: {
+    basePath: "/player/laser-transform",
+    count: playerAnimationConfig.laserTransform.frameCount,
+  },
+  laserLights: {
+    basePath: "/player/laser-lights",
+    count: playerAnimationConfig.laserLights.frameCount,
+  },
+} as const;
+
+const playerPhasePaths = {
+  spawn: {
+    basePath: "/player/spawn",
+    count: playerAnimationConfig.spawn.frameCount,
+  },
+  destroy: {
+    basePath: "/player/destroy",
+    count: playerAnimationConfig.destroy.frameCount,
+  },
+} as const;
+
+const powerUpPaths = {
+  laser: "/powerups/laser",
+  expand: "/powerups/expand",
+  catch: "/powerups/catch",
+  disrupt: "/powerups/disrupt",
+  slow: "/powerups/slow",
+  break: "/powerups/break",
+  player: "/powerups/player",
+} as const satisfies Record<PowerUpKind, string>;
 
 const brickHitPaths = {
   silver: "/bricks/silver-hit",
   gold: "/bricks/gold-hit",
-} as const;
+} as const satisfies Record<"silver" | "gold", string>;
 
-export type GameAssets = Readonly<
-  Record<keyof typeof gameAssetPaths, Texture>
-> &
+const enemyPaths = {
+  blueShip: { basePath: "/enemies/blue-ship", count: 8 },
+  yellowShip: { basePath: "/enemies/yellow-ship", count: 7 },
+  blueOrb: { basePath: "/enemies/blue-orb", count: 6 },
+  redOrb: { basePath: "/enemies/red-orb", count: 8 },
+} as const satisfies Record<EnemyKind, FrameSet>;
+
+const enemyExplosion = { basePath: "/enemies/explosion", count: 4 };
+const ANIMATION_FRAME_COUNT = 6;
+
+export type GameAssets = Readonly<Record<keyof typeof gamePaths, Texture>> &
   Readonly<Record<keyof typeof playerAnimationPaths, Texture[]>> & {
     readonly field: Readonly<
-      Record<keyof typeof fieldAssetPaths, Texture> & {
-        exitFrames: Texture[];
-        gateFrames: Texture[];
-      }
+      Record<keyof typeof fieldPaths, Texture> &
+        Record<keyof typeof fieldFramePaths, Texture[]>
     >;
     readonly playerSpawnFrames: Texture[];
     readonly playerDestroyFrames: Texture[];
     readonly powerUps: Readonly<Record<PowerUpKind, Texture[]>>;
-    readonly brickHitFrames: Readonly<Record<"silver" | "gold", Texture[]>>;
+    readonly brickHitFrames: Readonly<
+      Record<keyof typeof brickHitPaths, Texture[]>
+    >;
     readonly enemyFrames: Readonly<Record<EnemyKind, Texture[]>>;
     readonly enemyExplosionFrames: Texture[];
   };
 
-const DEFAULT_ANIMATION_FRAME_COUNT = 6;
-
 async function loadTexture(path: string): Promise<Texture> {
   const texture = await Assets.load<Texture>(path);
+  if (!(texture instanceof Texture)) {
+    throw new Error(`Could not load texture: ${path}`);
+  }
   texture.source.scaleMode = "nearest";
   return texture;
 }
 
-function loadNumberedFrames(path: string, count: number): Promise<Texture[]> {
+function loadFrames({ basePath, count }: FrameSet): Promise<Texture[]> {
+  if (!Number.isInteger(count) || count < 1) {
+    throw new Error(`Invalid frame count for ${basePath}: ${count}`);
+  }
   return Promise.all(
     Array.from({ length: count }, (_, index) =>
-      loadTexture(`${path}-${String(index + 1).padStart(2, "0")}.png`),
+      loadTexture(`${basePath}-${String(index + 1).padStart(2, "0")}.png`),
     ),
   );
 }
 
-async function loadEnemyAnimations(): Promise<{
-  enemyFrames: Record<EnemyKind, Texture[]>;
-  enemyExplosionFrames: Texture[];
-}> {
-  const sheet = new Image();
-  sheet.src = "/enemies/sheet.png";
-  await sheet.decode();
-
-  const frameCounts: Record<EnemyKind, number> = {
-    blueShip: 8,
-    yellowShip: 7,
-    blueOrb: 6,
-    redOrb: 8,
-  };
-
-  const createFrames = (row: number, count: number): Texture[] =>
-    Array.from({ length: count }, (_, column) => {
-      const canvas = document.createElement("canvas");
-      canvas.width = 16;
-      canvas.height = 16;
-      const context = canvas.getContext("2d");
-      if (!context) throw new Error("Could not prepare enemy sprite");
-
-      context.drawImage(sheet, column * 16, row * 16, 16, 16, 0, 0, 16, 16);
-      const image = context.getImageData(0, 0, 16, 16);
-      for (let i = 0; i < image.data.length; i += 4) {
-        if (
-          image.data[i] <= 1 &&
-          image.data[i + 1] <= 1 &&
-          image.data[i + 2] <= 1
-        ) {
-          image.data[i + 3] = 0;
-        }
-      }
-      context.putImageData(image, 0, 0);
-      const texture = Texture.from(canvas);
-      texture.source.scaleMode = "nearest";
-      return texture;
-    });
-
-  return {
-    enemyFrames: Object.fromEntries(
-      ENEMY_KINDS.map((kind, row) => [
-        kind,
-        createFrames(row, frameCounts[kind]),
-      ]),
-    ) as Record<EnemyKind, Texture[]>,
-    enemyExplosionFrames: createFrames(4, 4),
-  };
+async function loadCatalog<Catalog extends Record<string, unknown>, Value>(
+  catalog: Catalog,
+  load: (entry: Catalog[keyof Catalog]) => Promise<Value>,
+): Promise<{ [Key in keyof Catalog]: Value }> {
+  const entries = await Promise.all(
+    (Object.keys(catalog) as (keyof Catalog)[]).map(
+      async (key) => [key, await load(catalog[key])] as const,
+    ),
+  );
+  // Every key comes from catalog, and Promise.all requires every load to succeed.
+  return Object.fromEntries(entries) as { [Key in keyof Catalog]: Value };
 }
 
-export async function loadGameAssets(): Promise<GameAssets> {
-  const [
-    entries,
-    fieldEntries,
-    fieldExitFrames,
-    fieldGateFrames,
-    animationEntries,
-    powerUpEntries,
-    brickHitEntries,
-    enemyAnimations,
-    playerSpawnFrames,
-    playerDestroyFrames,
-  ] = await Promise.all([
-    Promise.all(
-      Object.entries(gameAssetPaths).map(async ([key, path]) => {
-        return [key, await loadTexture(path)] as const;
-      }),
-    ),
-    Promise.all(
-      Object.entries(fieldAssetPaths).map(async ([key, path]) => {
-        return [key, await loadTexture(path)] as const;
-      }),
-    ),
-    loadNumberedFrames("/fields/exit-frames/exit", 3),
-    loadNumberedFrames("/fields/gate-frames/gate", 3),
-    Promise.all(
-      Object.entries(playerAnimationPaths).map(async ([key, path]) => {
-        const frames = await loadNumberedFrames(
-          path,
-          playerAnimationConfig[key as keyof typeof playerAnimationPaths]
-            .frameCount,
-        );
-        return [key, frames] as const;
-      }),
-    ),
-    Promise.all(
-      POWER_UP_KINDS.map(async (kind) => {
-        const frames = await loadNumberedFrames(
-          `/powerups/${kind}`,
-          DEFAULT_ANIMATION_FRAME_COUNT,
-        );
-        return [kind, frames] as const;
-      }),
-    ),
-    Promise.all(
-      Object.entries(brickHitPaths).map(async ([kind, path]) => {
-        const frames = await loadNumberedFrames(
-          path,
-          DEFAULT_ANIMATION_FRAME_COUNT,
-        );
-        return [kind, frames] as const;
-      }),
-    ),
-    loadEnemyAnimations(),
-    loadNumberedFrames("/player/spawn", playerAnimationConfig.spawn.frameCount),
-    loadNumberedFrames(
-      "/player/destroy",
-      playerAnimationConfig.destroy.frameCount,
-    ),
-  ]);
+export class AssetLoader {
+  async load(): Promise<GameAssets> {
+    const [
+      game,
+      fieldTextures,
+      fieldFrames,
+      playerAnimations,
+      playerPhases,
+      powerUps,
+      brickHitFrames,
+      enemyFrames,
+      enemyExplosionFrames,
+    ] = await Promise.all([
+      loadCatalog(gamePaths, loadTexture),
+      loadCatalog(fieldPaths, loadTexture),
+      loadCatalog(fieldFramePaths, loadFrames),
+      loadCatalog(playerAnimationPaths, loadFrames),
+      loadCatalog(playerPhasePaths, loadFrames),
+      loadCatalog(powerUpPaths, (basePath) =>
+        loadFrames({ basePath, count: ANIMATION_FRAME_COUNT }),
+      ),
+      loadCatalog(brickHitPaths, (basePath) =>
+        loadFrames({ basePath, count: ANIMATION_FRAME_COUNT }),
+      ),
+      loadCatalog(enemyPaths, loadFrames),
+      loadFrames(enemyExplosion),
+    ]);
 
-  return {
-    ...Object.fromEntries(entries),
-    field: {
-      ...Object.fromEntries(fieldEntries),
-      exitFrames: fieldExitFrames,
-      gateFrames: fieldGateFrames,
-    },
-    ...Object.fromEntries(animationEntries),
-    powerUps: Object.fromEntries(powerUpEntries),
-    brickHitFrames: Object.fromEntries(brickHitEntries),
-    enemyFrames: enemyAnimations.enemyFrames,
-    enemyExplosionFrames: enemyAnimations.enemyExplosionFrames,
-    playerSpawnFrames,
-    playerDestroyFrames,
-  } as GameAssets;
+    return {
+      ...game,
+      field: { ...fieldTextures, ...fieldFrames },
+      ...playerAnimations,
+      playerSpawnFrames: playerPhases.spawn,
+      playerDestroyFrames: playerPhases.destroy,
+      powerUps,
+      brickHitFrames,
+      enemyFrames,
+      enemyExplosionFrames,
+    } satisfies GameAssets;
+  }
 }

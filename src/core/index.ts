@@ -14,7 +14,7 @@ export type {
   EnemyState,
 } from "./WorldState";
 export type { PlayerPhaseFrame } from "./PlayerPhase";
-export { type GameAssets, loadGameAssets } from "./assetsLoader";
+export { AssetLoader, type GameAssets } from "./assetsLoader";
 export type {
   GameOutcome,
   BrickHitEvent,
