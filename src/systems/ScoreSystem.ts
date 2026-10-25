@@ -2,7 +2,7 @@ import type { EventWriter } from "@/core/EventQueue";
 import type { ScoreChangedEvent } from "@/core/WorldEvent";
 import type { BrickKind } from "@/entities";
 
-const BRICK_POINTS: Record<BrickKind, number> = {
+const BRICK_POINTS: Record<Exclude<BrickKind, "silver">, number> = {
   white: 50,
   orange: 60,
   "light-blue": 70,
@@ -11,10 +11,10 @@ const BRICK_POINTS: Record<BrickKind, number> = {
   blue: 100,
   pink: 110,
   yellow: 120,
-  silver: 0,
   gold: 0,
 };
 
+const SILVER_POINTS_PER_LEVEL = 50;
 const CAPSULE_POINTS = 1000;
 const ENEMY_POINTS = 100;
 
@@ -32,7 +32,10 @@ export class ScoreSystem {
   }
 
   awardBrick(kind: BrickKind, levelIndex: number): void {
-    const points = kind === "silver" ? 50 * levelIndex : BRICK_POINTS[kind];
+    const points =
+      kind === "silver"
+        ? SILVER_POINTS_PER_LEVEL * levelIndex
+        : BRICK_POINTS[kind];
     this.addPoints(points);
   }
 
