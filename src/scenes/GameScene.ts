@@ -174,12 +174,7 @@ export class GameScene extends Scene {
   ) {
     super();
 
-    this.controls = new Controls(
-      inputManager,
-      inputMode === "keyboard"
-        ? { ...this.playingBindings, ...this.testBindings }
-        : { ...this.pauseBinding, ...this.testBindings },
-    );
+    this.controls = new Controls(inputManager, this.getPlayingBindings());
 
     if (inputMode === "mouse") {
       this.eventMode = "static";
@@ -230,9 +225,7 @@ export class GameScene extends Scene {
 
     this.hud.setLives(this.world.lives);
     this.hud.setScore(this.world.score);
-    const state = this.world.state;
-    this.worldView.sync(state);
-    this.updateLaunchHint(state);
+    this.syncWorldView();
   }
 
   resize(width: number, height: number): void {
@@ -283,9 +276,19 @@ export class GameScene extends Scene {
       actionPressed: this.actionRequested,
       dtSeconds,
     });
+    this.syncWorldView();
+  }
+
+  private syncWorldView(): void {
     const state = this.world.state;
     this.worldView.sync(state);
     this.updateLaunchHint(state);
+  }
+
+  private getPlayingBindings(): ControlBindings<GameAction> {
+    return this.inputMode === "keyboard"
+      ? { ...this.playingBindings, ...this.testBindings }
+      : { ...this.pauseBinding, ...this.testBindings };
   }
 
   private updateLaunchHint(state: WorldState = this.world.state): void {
@@ -353,11 +356,7 @@ export class GameScene extends Scene {
 
     this.worldView.setPaused(mode === "paused" || mode === "transition");
     if (mode === "playing") {
-      this.controls.setBindings(
-        this.inputMode === "keyboard"
-          ? { ...this.playingBindings, ...this.testBindings }
-          : { ...this.pauseBinding, ...this.testBindings },
-      );
+      this.controls.setBindings(this.getPlayingBindings());
     } else if (mode === "paused") {
       this.controls.setBindings(this.pauseBindings);
     } else if (mode === "result") {
