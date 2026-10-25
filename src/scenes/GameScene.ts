@@ -134,7 +134,7 @@ export class GameScene extends Scene {
     if (event.type === "brickHit") {
       this.worldView.playBrickHit(event.brick);
     } else if (event.type === "enemyDestroyed") {
-      this.worldView.playEnemyExplosion(event.enemy.position);
+      this.worldView.playEnemyExplosion(event.enemy);
     } else if (event.type === "lifeLost" || event.type === "lifeGained") {
       this.hud.setLives(event.remainingLives);
     } else if (event.type === "scoreChanged") {

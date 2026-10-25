@@ -2,12 +2,15 @@ import { playerAnimationConfig } from "@/config";
 import type { GameAssets, PlayerPhaseFrame } from "@/core";
 import type { Player } from "@/entities";
 import { AnimatedSprite, Container, Sprite } from "pixi.js";
+import { createSpriteShadow } from "./Shadow";
 
 type PlayerWidth = "normal" | "expanded";
 
 export class PlayerView extends Container {
   private readonly body: AnimatedSprite;
+  private readonly bodyShadow: Sprite;
   private readonly phaseSprite: Sprite;
+  private readonly phaseShadow: Sprite;
   private renderedMode: Player["mode"] = "normal";
   private renderedWidth: PlayerWidth = "normal";
 
@@ -22,7 +25,15 @@ export class PlayerView extends Container {
     this.phaseSprite = new Sprite(assets.playerSpawnFrames[0]);
     this.phaseSprite.anchor.set(0.5);
     this.phaseSprite.visible = false;
-    this.addChild(this.body, this.phaseSprite);
+    this.bodyShadow = createSpriteShadow(this.body);
+    this.phaseShadow = createSpriteShadow(this.phaseSprite);
+    this.phaseShadow.visible = false;
+    this.addChild(
+      this.bodyShadow,
+      this.phaseShadow,
+      this.body,
+      this.phaseSprite,
+    );
   }
 
   sync(
@@ -47,15 +58,19 @@ export class PlayerView extends Container {
       this.body.height !== player.height
     ) {
       this.body.setSize(player.width, player.height);
+      this.bodyShadow.setSize(player.width, player.height);
     }
     this.position.set(player.position.x, player.position.y);
     this.body.visible = phase === null && !defeated;
+    this.bodyShadow.visible = this.body.visible;
     this.phaseSprite.visible = phase !== null;
+    this.phaseShadow.visible = this.phaseSprite.visible;
     if (phase !== null) {
       this.phaseSprite.texture =
         phase.kind === "spawn"
           ? this.assets.playerSpawnFrames[phase.frame]
           : this.assets.playerDestroyFrames[phase.frame];
+      this.phaseShadow.texture = this.phaseSprite.texture;
     }
   }
 
