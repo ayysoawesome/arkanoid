@@ -6,7 +6,10 @@ import {
   type EnemyGateSide,
 } from "@/config";
 import type { EventWriter } from "@/core/EventQueue";
-import type { EnemyDestroyedEvent, EnemyHitEvent } from "@/core/WorldEvent";
+import type {
+  InternalEnemyDestroyedEvent,
+  InternalEnemyHitEvent,
+} from "@/core/WorldEvent";
 import { Brick, Enemy, Player } from "@/entities";
 import type { EnemySpawnDef } from "@/levels";
 
@@ -20,7 +23,9 @@ export class EnemySystem {
   private readonly enteringEnemies = new Set<Enemy>();
 
   constructor(
-    private readonly events: EventWriter<EnemyHitEvent | EnemyDestroyedEvent>,
+    private readonly events: EventWriter<
+      InternalEnemyHitEvent | InternalEnemyDestroyedEvent
+    >,
   ) {}
 
   startLevel(spawns: readonly EnemySpawnDef[]): void {

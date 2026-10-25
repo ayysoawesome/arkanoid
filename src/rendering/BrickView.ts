@@ -1,4 +1,5 @@
 import type { GameAssets } from "@/core";
+import type { BrickState } from "@/core";
 import { Brick, type BrickKind } from "@/entities";
 import { AnimatedSprite, Container, Graphics, type Texture } from "pixi.js";
 import {
@@ -25,7 +26,7 @@ export class BrickView extends Container {
   private readonly body: Graphics | AnimatedSprite;
 
   constructor(
-    private readonly brick: Brick,
+    private brick: BrickState,
     assets: GameAssets,
   ) {
     super();
@@ -42,10 +43,11 @@ export class BrickView extends Container {
       shadow.alpha = SHADOW_ALPHA;
     }
     this.addChild(shadow, this.body);
-    this.sync();
+    this.sync(brick);
   }
 
-  sync(): void {
+  sync(brick: BrickState): void {
+    this.brick = brick;
     this.position.set(this.brick.position.x, this.brick.position.y);
     if (
       this.brick.destroyed &&

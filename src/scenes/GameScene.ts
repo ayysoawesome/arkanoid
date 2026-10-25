@@ -7,6 +7,7 @@ import {
   type PlayerInputMode,
   Scene,
   type WorldEvent,
+  type WorldState,
 } from "@/core";
 import { WorldView } from "@/rendering";
 import { GameHud } from "@/ui/hud";
@@ -82,12 +83,12 @@ export class GameScene extends Scene {
         enableLaser: {
           key: "KeyL",
           when: "pressed",
-          handle: () => this.world.player.enableLaser(),
+          handle: () => this.world.applyDebugPowerUp("laser"),
         },
         enableExpand: {
           key: "KeyE",
           when: "pressed",
-          handle: () => this.world.player.expand(),
+          handle: () => this.world.applyDebugPowerUp("expand"),
         },
       }
     : {};
@@ -132,7 +133,7 @@ export class GameScene extends Scene {
   private readonly levelTransitionOverlay = new LevelTransitionOverlay();
   private readonly handleWorldEvent = (event: WorldEvent): void => {
     if (event.type === "brickHit") {
-      this.worldView.playBrickHit(event.brick);
+      this.worldView.playBrickHit(event.brickId);
     } else if (event.type === "enemyDestroyed") {
       this.worldView.playEnemyExplosion(event.enemy);
     } else if (event.type === "lifeLost" || event.type === "lifeGained") {
@@ -196,21 +197,7 @@ export class GameScene extends Scene {
     }
 
     this.hud = new GameHud(assets.normalLights[0], highScore);
-    this.worldView = new WorldView(
-      {
-        player: this.world.player,
-        balls: this.world.balls,
-        bricks: this.world.bricks,
-        powerUps: this.world.powerUps,
-        laserShots: this.world.laserShots,
-        enemies: this.world.enemies,
-        exitOpen: this.world.exitOpen,
-        gateFrames: this.world.gateFrames,
-        playerPhaseFrame: this.world.playerPhaseFrame,
-        playerDefeated: this.world.status === "defeat",
-      },
-      assets,
-    );
+    this.worldView = new WorldView(this.world.state, assets);
     this.launchHint = new Text({
       text: inputMode === "mouse" ? "CLICK TO LAUNCH" : "SPACE TO LAUNCH",
       style: textStyles.launchHint,
@@ -286,37 +273,27 @@ export class GameScene extends Scene {
       actionPressed: this.actionRequested,
       dtSeconds,
     });
-    this.worldView.sync({
-      player: this.world.player,
-      balls: this.world.balls,
-      bricks: this.world.bricks,
-      powerUps: this.world.powerUps,
-      laserShots: this.world.laserShots,
-      enemies: this.world.enemies,
-      exitOpen: this.world.exitOpen,
-      gateFrames: this.world.gateFrames,
-      playerPhaseFrame: this.world.playerPhaseFrame,
-      playerDefeated: this.world.status === "defeat",
-    });
-    this.updateLaunchHint();
+    const state = this.world.state;
+    this.worldView.sync(state);
+    this.updateLaunchHint(state);
     if (this.levelTransitionOverlay.visible) {
       this.worldView.setPaused(true);
     }
   }
 
-  private updateLaunchHint(): void {
+  private updateLaunchHint(state: WorldState = this.world.state): void {
     this.launchHint.visible =
-      this.world.playerPhaseFrame === null &&
-      this.world.balls.some((ball) => ball.attached);
+      state.playerPhaseFrame === null &&
+      state.balls.some((ball) => ball.attached);
     const scale = this.worldView.scale.x;
     const halfWidth = this.launchHint.width / 2;
     const border = worldConfig.borderWidth * scale;
-    this.launchHint.y = (this.world.player.position.y - 32) * scale;
+    this.launchHint.y = (state.player.position.y - 32) * scale;
     this.launchHint.x = Math.max(
       halfWidth + border,
       Math.min(
         worldConfig.width * scale - border - halfWidth,
-        this.world.player.position.x * scale,
+        state.player.position.x * scale,
       ),
     );
   }

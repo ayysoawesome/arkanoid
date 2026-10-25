@@ -1,6 +1,5 @@
 import { playerAnimationConfig } from "@/config";
-import type { GameAssets, PlayerPhaseFrame } from "@/core";
-import type { Player } from "@/entities";
+import type { GameAssets, PlayerPhaseFrame, PlayerState } from "@/core";
 import { AnimatedSprite, Container, Sprite } from "pixi.js";
 import { createSpriteShadow } from "./Shadow";
 
@@ -11,7 +10,7 @@ export class PlayerView extends Container {
   private readonly bodyShadow: Sprite;
   private readonly phaseSprite: Sprite;
   private readonly phaseShadow: Sprite;
-  private renderedMode: Player["mode"] = "normal";
+  private renderedMode: PlayerState["mode"] = "normal";
   private renderedWidth: PlayerWidth = "normal";
 
   constructor(private readonly assets: GameAssets) {
@@ -37,7 +36,7 @@ export class PlayerView extends Container {
   }
 
   sync(
-    player: Player,
+    player: PlayerState,
     phase: PlayerPhaseFrame | null,
     defeated: boolean,
   ): void {

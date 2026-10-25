@@ -1,10 +1,11 @@
 import type { Brick, BrickKind, Enemy, PowerUpKind } from "@/entities";
+import type { EnemyState } from "./WorldState";
 
 export type GameOutcome = "victory" | "defeat";
 
 export type BrickHitEvent = {
   type: "brickHit";
-  brick: Brick;
+  brickId: number;
 };
 
 export type BrickDestroyedEvent = {
@@ -24,10 +25,17 @@ export type ScoreChangedEvent = {
   score: number;
 };
 
-export type EnemyHitEvent = { type: "enemyHit"; enemy: Enemy };
-export type EnemyDestroyedEvent = { type: "enemyDestroyed"; enemy: Enemy };
+export type EnemyHitEvent = { type: "enemyHit"; enemyId: number };
+export type EnemyDestroyedEvent = { type: "enemyDestroyed"; enemy: EnemyState };
 
-export type WorldEvent =
+export type InternalBrickHitEvent = { type: "brickHit"; brick: Brick };
+export type InternalEnemyHitEvent = { type: "enemyHit"; enemy: Enemy };
+export type InternalEnemyDestroyedEvent = {
+  type: "enemyDestroyed";
+  enemy: Enemy;
+};
+
+export type WorldEvent = Readonly<
   | PowerUpCollectedEvent
   | BrickHitEvent
   | BrickDestroyedEvent
@@ -39,4 +47,11 @@ export type WorldEvent =
   | { type: "levelExited"; levelIndex: number }
   | { type: "lifeLost"; remainingLives: number }
   | { type: "lifeGained"; remainingLives: number }
-  | { type: "gameEnded"; outcome: GameOutcome };
+  | { type: "gameEnded"; outcome: GameOutcome }
+>;
+
+export type InternalWorldEvent =
+  | Exclude<WorldEvent, BrickHitEvent | EnemyHitEvent | EnemyDestroyedEvent>
+  | InternalBrickHitEvent
+  | InternalEnemyHitEvent
+  | InternalEnemyDestroyedEvent;

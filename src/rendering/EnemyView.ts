@@ -1,5 +1,4 @@
-import type { GameAssets } from "@/core";
-import type { Enemy } from "@/entities";
+import type { EnemyState, GameAssets } from "@/core";
 import { AnimatedSprite, Container } from "pixi.js";
 import { createSpriteShadow } from "./Shadow";
 
@@ -7,7 +6,7 @@ export class EnemyView extends Container {
   private readonly body: AnimatedSprite;
 
   constructor(
-    private readonly enemy: Enemy,
+    private enemy: EnemyState,
     private readonly assets: GameAssets,
   ) {
     super();
@@ -18,15 +17,16 @@ export class EnemyView extends Container {
       autoPlay: true,
     });
     this.addChild(createSpriteShadow(this.body), this.body);
-    this.sync();
+    this.sync(enemy);
   }
 
-  sync(): void {
+  sync(enemy: EnemyState): void {
+    this.enemy = enemy;
     this.position.set(this.enemy.position.x, this.enemy.position.y);
   }
 
-  playExplosion(onComplete: () => void): void {
-    this.sync();
+  playExplosion(enemy: EnemyState, onComplete: () => void): void {
+    this.sync(enemy);
     this.body.textures = this.assets.enemyExplosionFrames;
     this.body.animationSpeed = 0.2;
     this.body.loop = false;
