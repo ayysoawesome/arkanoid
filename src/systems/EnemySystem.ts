@@ -1,4 +1,10 @@
-import { fieldBounds } from "@/config";
+import {
+  enemyGateConfig,
+  enemyGateX,
+  fieldBounds,
+  type EnemyGateFrame,
+  type EnemyGateSide,
+} from "@/config";
 import type { EventWriter } from "@/core/EventQueue";
 import type { EnemyDestroyedEvent, EnemyHitEvent } from "@/core/WorldEvent";
 import { Brick, Enemy, Player } from "@/entities";
@@ -11,6 +17,7 @@ export class EnemySystem {
   private elapsedSeconds = 0;
   private nextSpawnIndex = 0;
   private spawns: readonly EnemySpawnDef[] = [];
+  private readonly enteringEnemies = new Set<Enemy>();
 
   constructor(
     private readonly events: EventWriter<EnemyHitEvent | EnemyDestroyedEvent>,
@@ -20,6 +27,39 @@ export class EnemySystem {
     this.spawns = [...spawns].sort((a, b) => a.atSeconds - b.atSeconds);
     this.elapsedSeconds = 0;
     this.nextSpawnIndex = 0;
+    this.enteringEnemies.clear();
+  }
+
+  get gateFrames(): Readonly<Record<EnemyGateSide, EnemyGateFrame>> {
+    const frames: Record<EnemyGateSide, EnemyGateFrame> = {
+      left: 0,
+      right: 0,
+    };
+
+    for (const spawn of this.spawns) {
+      const untilSpawn = spawn.atSeconds - this.elapsedSeconds;
+      const halfOpening = enemyGateConfig.openingSeconds / 2;
+      let frame: EnemyGateFrame = 0;
+      if (
+        untilSpawn <= enemyGateConfig.openingSeconds &&
+        untilSpawn > halfOpening
+      ) {
+        frame = 1;
+      } else if (
+        untilSpawn <= halfOpening &&
+        untilSpawn >= -enemyGateConfig.openAfterSpawnSeconds
+      ) {
+        frame = 2;
+      } else if (
+        untilSpawn < -enemyGateConfig.openAfterSpawnSeconds &&
+        untilSpawn >= -enemyGateConfig.openAfterSpawnSeconds - halfOpening
+      ) {
+        frame = 1;
+      }
+      if (frame > frames[spawn.side]) frames[spawn.side] = frame;
+    }
+
+    return frames;
   }
 
   update(
@@ -34,7 +74,9 @@ export class EnemySystem {
       this.nextSpawnIndex < this.spawns.length &&
       this.spawns[this.nextSpawnIndex].atSeconds <= this.elapsedSeconds
     ) {
-      enemies.push(this.createEnemy(this.spawns[this.nextSpawnIndex]));
+      const enemy = this.createEnemy(this.spawns[this.nextSpawnIndex]);
+      enemies.push(enemy);
+      this.enteringEnemies.add(enemy);
       this.nextSpawnIndex++;
     }
 
@@ -45,7 +87,16 @@ export class EnemySystem {
         enemy.position.y - Enemy.HEIGHT / 2 > fieldBounds.bottom
       ) {
         enemies.splice(i, 1);
+        this.enteringEnemies.delete(enemy);
         continue;
+      }
+
+      if (this.enteringEnemies.has(enemy)) {
+        enemy.position.y += VERTICAL_SPEED * dtSeconds;
+        const entryY = fieldBounds.top + Enemy.HEIGHT / 2;
+        if (enemy.position.y < entryY) continue;
+        enemy.position.y = entryY;
+        this.enteringEnemies.delete(enemy);
       }
 
       this.moveHorizontally(enemy, bricks, dtSeconds);
@@ -59,6 +110,7 @@ export class EnemySystem {
 
   handleHit(enemy: Enemy): void {
     if (!enemy.alive) return;
+    this.enteringEnemies.delete(enemy);
     enemy.destroy();
     this.events.emit({ type: "enemyDestroyed", enemy });
   }
@@ -135,10 +187,8 @@ export class EnemySystem {
     return new Enemy(
       spawn.kind,
       {
-        x: fromLeft
-          ? fieldBounds.left + Enemy.WIDTH / 2
-          : fieldBounds.right - Enemy.WIDTH / 2,
-        y: fieldBounds.top + Enemy.HEIGHT / 2,
+        x: enemyGateX[spawn.side] + enemyGateConfig.width / 2,
+        y: fieldBounds.top - Enemy.HEIGHT / 2,
       },
       {
         x: fromLeft ? HORIZONTAL_SPEED : -HORIZONTAL_SPEED,

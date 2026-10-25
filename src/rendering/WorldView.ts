@@ -1,5 +1,5 @@
-import { exitBounds, worldConfig } from "@/config";
 import { GameAssets, type PlayerPhaseFrame } from "@/core";
+import type { EnemyGateFrame, EnemyGateSide } from "@/config";
 import {
   Ball,
   Brick,
@@ -10,6 +10,7 @@ import {
   PowerUp,
 } from "@/entities";
 import { AnimatedSprite, Container, Graphics, Sprite, Texture } from "pixi.js";
+import { FieldView } from "./FieldView";
 import { PlayerView } from "./PlayerView";
 
 type ColoredBrickKind = Exclude<BrickKind, "silver" | "gold">;
@@ -33,6 +34,7 @@ type WorldViewState = {
   readonly laserShots: readonly LaserShot[];
   readonly enemies: readonly Enemy[];
   readonly exitOpen: boolean;
+  readonly gateFrames: Readonly<Record<EnemyGateSide, EnemyGateFrame>>;
   readonly playerPhaseFrame: PlayerPhaseFrame | null;
   readonly playerDefeated: boolean;
 };
@@ -52,7 +54,7 @@ export class WorldView extends Container {
   private readonly enemyEffectsView = new Container();
   private readonly enemyEffects = new Set<AnimatedSprite>();
   private pausedAnimations: AnimatedSprite[] = [];
-  private readonly exitView: Sprite;
+  private readonly fieldView: FieldView;
 
   constructor(
     state: WorldViewState,
@@ -60,20 +62,12 @@ export class WorldView extends Container {
   ) {
     super();
 
-    const fieldView = new Sprite(assets.field1);
-    fieldView.anchor.set(0, 0);
-    fieldView.position.set(0, 0);
-    fieldView.setSize(worldConfig.width, worldConfig.height);
-
-    this.exitView = new Sprite(assets.exit);
-    this.exitView.position.set(exitBounds.left, exitBounds.top);
-    this.exitView.setSize(worldConfig.exit.width, worldConfig.exit.height);
+    this.fieldView = new FieldView(assets.field);
 
     this.playerView = new PlayerView(assets);
 
     this.addChild(
-      fieldView,
-      this.exitView,
+      this.fieldView,
       this.bricksView,
       this.enemiesView,
       this.enemyEffectsView,
@@ -93,10 +87,12 @@ export class WorldView extends Container {
     laserShots,
     enemies,
     exitOpen,
+    gateFrames,
     playerPhaseFrame,
     playerDefeated,
   }: WorldViewState): void {
-    this.exitView.visible = exitOpen;
+    this.fieldView.setExitOpen(exitOpen);
+    this.fieldView.setGateFrames(gateFrames);
     this.playerView.sync(player, playerPhaseFrame, playerDefeated);
     this.ballsView.visible = playerPhaseFrame === null;
     this.syncBalls(balls);

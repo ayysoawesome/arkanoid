@@ -3,6 +3,8 @@ import {
   fieldBounds,
   playerAnimationConfig,
   worldConfig,
+  type EnemyGateFrame,
+  type EnemyGateSide,
 } from "@/config";
 import {
   Ball,
@@ -165,6 +167,10 @@ export class GameWorld {
 
   get exitOpen(): boolean {
     return this.exitIsOpen;
+  }
+
+  get gateFrames(): Readonly<Record<EnemyGateSide, EnemyGateFrame>> {
+    return this.enemySystem.gateFrames;
   }
 
   get playerPhaseFrame(): PlayerPhaseFrame | null {

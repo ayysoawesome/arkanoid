@@ -205,6 +205,7 @@ export class GameScene extends Scene {
         laserShots: this.world.laserShots,
         enemies: this.world.enemies,
         exitOpen: this.world.exitOpen,
+        gateFrames: this.world.gateFrames,
         playerPhaseFrame: this.world.playerPhaseFrame,
         playerDefeated: this.world.status === "defeat",
       },
@@ -293,6 +294,7 @@ export class GameScene extends Scene {
       laserShots: this.world.laserShots,
       enemies: this.world.enemies,
       exitOpen: this.world.exitOpen,
+      gateFrames: this.world.gateFrames,
       playerPhaseFrame: this.world.playerPhaseFrame,
       playerDefeated: this.world.status === "defeat",
     });

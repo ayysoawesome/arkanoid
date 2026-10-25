@@ -10,8 +10,16 @@ import {
 const gameAssetPaths = {
   laserShot: "/player/laser-shot.png",
   ball: "ball/ball.png",
-  field1: "/fields/field-01.png",
-  exit: "/fields/exit.png",
+} as const;
+
+const fieldAssetPaths = {
+  background: "/fields/backgrounds/blue-diagonal.png",
+  cornerLeft: "/fields/frame/corner-left.png",
+  cornerRight: "/fields/frame/corner-right.png",
+  topRail: "/fields/frame/top-rail.png",
+  sideLeft: "/fields/frame/side-left.png",
+  sideRight: "/fields/frame/side-right.png",
+  closedExit: "/fields/frame/exit-closed.png",
 } as const;
 
 const playerAnimationPaths = {
@@ -30,6 +38,12 @@ export type GameAssets = Readonly<
   Record<keyof typeof gameAssetPaths, Texture>
 > &
   Readonly<Record<keyof typeof playerAnimationPaths, Texture[]>> & {
+    readonly field: Readonly<
+      Record<keyof typeof fieldAssetPaths, Texture> & {
+        exitFrames: Texture[];
+        gateFrames: Texture[];
+      }
+    >;
     readonly playerSpawnFrames: Texture[];
     readonly playerDestroyFrames: Texture[];
     readonly powerUps: Readonly<Record<PowerUpKind, Texture[]>>;
@@ -108,6 +122,9 @@ async function loadEnemyAnimations(): Promise<{
 export async function loadGameAssets(): Promise<GameAssets> {
   const [
     entries,
+    fieldEntries,
+    fieldExitFrames,
+    fieldGateFrames,
     animationEntries,
     powerUpEntries,
     brickHitEntries,
@@ -120,6 +137,13 @@ export async function loadGameAssets(): Promise<GameAssets> {
         return [key, await loadTexture(path)] as const;
       }),
     ),
+    Promise.all(
+      Object.entries(fieldAssetPaths).map(async ([key, path]) => {
+        return [key, await loadTexture(path)] as const;
+      }),
+    ),
+    loadNumberedFrames("/fields/exit-frames/exit", 3),
+    loadNumberedFrames("/fields/gate-frames/gate", 3),
     Promise.all(
       Object.entries(playerAnimationPaths).map(async ([key, path]) => {
         const frames = await loadNumberedFrames(
@@ -158,6 +182,11 @@ export async function loadGameAssets(): Promise<GameAssets> {
 
   return {
     ...Object.fromEntries(entries),
+    field: {
+      ...Object.fromEntries(fieldEntries),
+      exitFrames: fieldExitFrames,
+      gateFrames: fieldGateFrames,
+    },
     ...Object.fromEntries(animationEntries),
     powerUps: Object.fromEntries(powerUpEntries),
     brickHitFrames: Object.fromEntries(brickHitEntries),
