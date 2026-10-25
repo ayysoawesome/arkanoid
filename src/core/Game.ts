@@ -167,7 +167,6 @@ export class Game {
   }
 
   start(): void {
-    this.app.canvas.focus();
     this.app.start();
   }
 

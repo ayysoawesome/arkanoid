@@ -27,3 +27,7 @@ body {
 #pixi-container canvas {
   display: block;
 }
+
+#pixi-container canvas:focus {
+  outline: none;
+}
