@@ -164,12 +164,6 @@ export class GameScene extends Scene {
   ) {
     super();
 
-    if (singleLevelIndex === null) {
-      this.world.startCampaign();
-    } else {
-      this.world.startSingleLevel(singleLevelIndex);
-    }
-
     this.controls = new Controls(
       inputManager,
       inputMode === "keyboard"
@@ -203,13 +197,9 @@ export class GameScene extends Scene {
       style: textStyles.launchHint,
     });
     this.launchHint.anchor.set(0.5);
-    this.updateLaunchHint();
     const returnHint = inputMode === "mouse" ? "CLICK - MENU" : "SPACE - MENU";
     this.defeatOverlay.setReturnHint(returnHint);
     this.victoryOverlay.setReturnHint(returnHint);
-    this.hud.setLives(this.world.lives);
-    this.hud.setScore(this.world.score);
-    this.hud.setRound(this.world.currentLevelIndex);
 
     this.addChild(
       this.worldView,
@@ -221,7 +211,18 @@ export class GameScene extends Scene {
       this.levelTransitionOverlay,
     );
     this.world.onEvent(this.handleWorldEvent);
-    this.showLevelTransition(this.world.currentLevelIndex);
+
+    if (singleLevelIndex === null) {
+      this.world.startCampaign();
+    } else {
+      this.world.startSingleLevel(singleLevelIndex);
+    }
+
+    this.hud.setLives(this.world.lives);
+    this.hud.setScore(this.world.score);
+    const state = this.world.state;
+    this.worldView.sync(state);
+    this.updateLaunchHint(state);
     this.worldView.setPaused(true);
   }
 
