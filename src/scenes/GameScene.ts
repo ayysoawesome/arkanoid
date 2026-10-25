@@ -11,13 +11,14 @@ import {
 import { WorldView } from "@/rendering";
 import { GameHud } from "@/ui/hud";
 import { worldConfig } from "@/config";
+import { textStyles } from "@/theme/tokens";
 import {
   DefeatOverlay,
   LevelTransitionOverlay,
   PauseOverlay,
   VictoryOverlay,
 } from "@/ui/overlays";
-import { Rectangle } from "pixi.js";
+import { Rectangle, Text } from "pixi.js";
 
 const LEVEL_TRANSITION_SECONDS = 1.5;
 
@@ -120,6 +121,7 @@ export class GameScene extends Scene {
     },
   };
   private readonly worldView: WorldView;
+  private readonly launchHint: Text;
   private readonly hud: GameHud;
   private readonly defeatOverlay = new DefeatOverlay();
   private readonly victoryOverlay = new VictoryOverlay();
@@ -208,6 +210,12 @@ export class GameScene extends Scene {
       },
       assets,
     );
+    this.launchHint = new Text({
+      text: inputMode === "mouse" ? "CLICK TO LAUNCH" : "SPACE TO LAUNCH",
+      style: textStyles.launchHint,
+    });
+    this.launchHint.anchor.set(0.5);
+    this.updateLaunchHint();
     const returnHint = inputMode === "mouse" ? "CLICK - MENU" : "SPACE - MENU";
     this.defeatOverlay.setReturnHint(returnHint);
     this.victoryOverlay.setReturnHint(returnHint);
@@ -217,6 +225,7 @@ export class GameScene extends Scene {
 
     this.addChild(
       this.worldView,
+      this.launchHint,
       this.hud,
       this.defeatOverlay,
       this.victoryOverlay,
@@ -244,6 +253,8 @@ export class GameScene extends Scene {
 
     this.worldView.scale.set(scale);
     this.worldView.position.set(0, 0);
+    this.launchHint.style.fontSize = Math.min(28, Math.max(12, 9 * scale));
+    this.updateLaunchHint();
     this.hud.position.set(gameField.width, 0);
     this.hud.resize(height);
 
@@ -285,9 +296,27 @@ export class GameScene extends Scene {
       playerPhaseFrame: this.world.playerPhaseFrame,
       playerDefeated: this.world.status === "defeat",
     });
+    this.updateLaunchHint();
     if (this.levelTransitionOverlay.visible) {
       this.worldView.setPaused(true);
     }
+  }
+
+  private updateLaunchHint(): void {
+    this.launchHint.visible =
+      this.world.playerPhaseFrame === null &&
+      this.world.balls.some((ball) => ball.attached);
+    const scale = this.worldView.scale.x;
+    const halfWidth = this.launchHint.width / 2;
+    const border = worldConfig.borderWidth * scale;
+    this.launchHint.y = (this.world.player.position.y - 32) * scale;
+    this.launchHint.x = Math.max(
+      halfWidth + border,
+      Math.min(
+        worldConfig.width * scale - border - halfWidth,
+        this.world.player.position.x * scale,
+      ),
+    );
   }
 
   private showLevelTransition(levelIndex: number): void {

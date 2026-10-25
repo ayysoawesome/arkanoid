@@ -1,10 +1,21 @@
 import { Controls, InputManager, Scene, type PlayerInputMode } from "@/core";
 import { createMenuLabel } from "@/ui/menu/createMenuLabel";
 import { MenuButton } from "@/ui/menu/MenuButton";
-import { textStyles, tokens } from "@/theme/tokens";
+import { textStyles } from "@/theme/tokens";
 import { Container } from "pixi.js";
 
 type ControlsAction = "previous" | "next" | "confirm";
+
+const MIN_LAYOUT_HEIGHT = 600;
+const layout = {
+  title: 0.2,
+  keyboard: 0.33,
+  mouse: 0.43,
+  selectedMode: 0.53,
+  firstInstruction: 0.62,
+  instructionStep: 0.055,
+  back: 0.82,
+} as const;
 
 export class ControlsScene extends Scene {
   private readonly controls: Controls<ControlsAction>;
@@ -17,6 +28,11 @@ export class ControlsScene extends Scene {
     "",
     textStyles.selectedMode,
   );
+  private readonly instructionLabels = [
+    createMenuLabel("", textStyles.selectedMode),
+    createMenuLabel("", textStyles.selectedMode),
+    createMenuLabel("", textStyles.selectedMode),
+  ];
   private readonly options: MenuButton[];
   private selectedIndex: number;
 
@@ -60,18 +76,11 @@ export class ControlsScene extends Scene {
       ),
       new MenuButton("BACK", this.onBack, () => this.select(2)),
     ];
-    const rowStep = tokens.button.height + tokens.button.rowGap;
-    const sectionGap = tokens.controls.sectionGap;
-    this.title.y = -rowStep * 2 - sectionGap;
-    this.options[0].y = -rowStep;
-    this.options[1].y = 0;
-    this.options[2].y = rowStep + sectionGap;
-    this.selectedModeLabel.y = rowStep * 2 + sectionGap;
-
     this.menuContainer.addChild(
       this.title,
       ...this.options,
       this.selectedModeLabel,
+      ...this.instructionLabels,
     );
     this.addChild(this.menuContainer);
     this.updateSelectedModeLabel();
@@ -79,6 +88,20 @@ export class ControlsScene extends Scene {
   }
 
   resize(width: number, height: number): void {
+    const layoutHeight = Math.max(height, MIN_LAYOUT_HEIGHT);
+    const scale = Math.min(1, (width - 24) / 450, height / layoutHeight);
+    const yAt = (fraction: number) => (fraction - 0.5) * layoutHeight;
+
+    this.title.y = yAt(layout.title);
+    this.options[0].y = yAt(layout.keyboard);
+    this.options[1].y = yAt(layout.mouse);
+    this.selectedModeLabel.y = yAt(layout.selectedMode);
+    this.instructionLabels.forEach((label, index) => {
+      label.y = yAt(layout.firstInstruction + index * layout.instructionStep);
+    });
+    this.options[2].y = yAt(layout.back);
+
+    this.menuContainer.scale.set(Math.max(0, scale));
     this.menuContainer.position.set(width / 2, height / 2);
   }
 
@@ -102,6 +125,13 @@ export class ControlsScene extends Scene {
 
   private updateSelectedModeLabel(): void {
     this.selectedModeLabel.text = `SELECTED: ${this.selectedMode.toUpperCase()}`;
+    const instructions =
+      this.selectedMode === "keyboard"
+        ? ["LEFT / RIGHT - MOVE", "SPACE - LAUNCH / FIRE", "ESC - PAUSE"]
+        : ["MOVE MOUSE - MOVE", "LEFT CLICK - LAUNCH / FIRE", "ESC - PAUSE"];
+    this.instructionLabels.forEach((label, index) => {
+      label.text = instructions[index];
+    });
   }
 
   private selectMode(mode: PlayerInputMode): void {
