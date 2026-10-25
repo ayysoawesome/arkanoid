@@ -3,8 +3,8 @@ import { fieldBounds, worldConfig } from "@/config";
 type PlayerMode = "normal" | "expanded" | "catch" | "laser";
 
 export class Player {
-  private static readonly NORMAL_WIDTH = 32;
-  private static readonly EXPANDED_WIDTH = 48;
+  static readonly NORMAL_WIDTH = 32;
+  static readonly EXPANDED_WIDTH = 48;
   private static readonly RESIZE_DURATION_SECONDS = 0.2;
 
   readonly height = 8;

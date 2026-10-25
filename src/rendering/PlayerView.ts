@@ -1,9 +1,12 @@
 import { playerAnimationConfig } from "@/config";
 import type { GameAssets, PlayerPhaseFrame, PlayerState } from "@/core";
+import { Player } from "@/entities";
 import { AnimatedSprite, Container, Sprite } from "pixi.js";
 import { createSpriteShadow } from "./Shadow";
 
 type PlayerWidth = "normal" | "expanded";
+const EXPANDED_SPRITE_WIDTH_THRESHOLD =
+  (Player.NORMAL_WIDTH + Player.EXPANDED_WIDTH) / 2;
 
 export class PlayerView extends Container {
   private readonly body: AnimatedSprite;
@@ -40,7 +43,8 @@ export class PlayerView extends Container {
     phase: PlayerPhaseFrame | null,
     defeated: boolean,
   ): void {
-    const width = player.width >= 40 ? "expanded" : "normal";
+    const width =
+      player.width >= EXPANDED_SPRITE_WIDTH_THRESHOLD ? "expanded" : "normal";
     if (player.mode !== this.renderedMode) {
       this.renderedMode = player.mode;
       if (player.mode === "laser") {
