@@ -7,11 +7,11 @@ interface IWorldConfig {
 }
 
 export const worldConfig: IWorldConfig = {
-  width: 224,
-  height: 256,
+  width: 202,
+  height: 230,
   borderWidth: 8,
   initialLives: 3,
-  exit: { width: 24, height: 24 },
+  exit: { width: 8, height: 40 },
 } as const;
 
 export const fieldBounds = {

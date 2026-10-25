@@ -3,7 +3,7 @@ import { Brick } from "@/entities";
 import { levels, type EnemySpawnDef } from "@/levels";
 
 const GRID_COLUMNS = 11;
-const GAP = 3;
+const GAP = 1;
 const START_Y = fieldBounds.top + 24;
 
 export class LevelSystem {
