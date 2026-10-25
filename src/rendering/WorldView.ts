@@ -79,25 +79,42 @@ export class WorldView extends Container {
     if (this.animationsPaused) this.pausePlayingAnimations();
   }
 
-  private syncEnemies(enemies: readonly EnemyState[]): void {
-    const currentEnemies = new Set(enemies.map((enemy) => enemy.id));
+  private syncViews<State extends { id: number }, View extends Container>(
+    states: readonly State[],
+    views: Map<number, View>,
+    layer: Container,
+    create: (state: State) => View,
+    update: (view: View, state: State) => void,
+  ): void {
+    const currentIds = new Set(states.map((state) => state.id));
 
-    for (const [id, view] of this.enemyViews) {
-      if (currentEnemies.has(id)) continue;
-      this.enemiesView.removeChild(view);
+    for (const [id, view] of views) {
+      if (currentIds.has(id)) continue;
+
+      layer.removeChild(view);
       view.destroy({ children: true });
-      this.enemyViews.delete(id);
+      views.delete(id);
     }
 
-    for (const enemy of enemies) {
-      let view = this.enemyViews.get(enemy.id);
+    for (const state of states) {
+      let view = views.get(state.id);
       if (!view) {
-        view = new EnemyView(enemy, this.assets);
-        this.enemiesView.addChild(view);
-        this.enemyViews.set(enemy.id, view);
+        view = create(state);
+        layer.addChild(view);
+        views.set(state.id, view);
       }
-      view.sync(enemy);
+      update(view, state);
     }
+  }
+
+  private syncEnemies(enemies: readonly EnemyState[]): void {
+    this.syncViews(
+      enemies,
+      this.enemyViews,
+      this.enemiesView,
+      (enemy) => new EnemyView(enemy, this.assets),
+      (view, enemy) => view.sync(enemy),
+    );
   }
 
   playEnemyExplosion(enemy: EnemyState): void {
@@ -159,105 +176,53 @@ export class WorldView extends Container {
   }
 
   private syncLaserShots(laserShots: readonly LaserShotState[]): void {
-    const currentShots = new Set(laserShots.map((shot) => shot.id));
-
-    for (const [id, view] of this.laserShotViews) {
-      if (currentShots.has(id)) continue;
-
-      this.laserShotsView.removeChild(view);
-      view.destroy({ children: true });
-      this.laserShotViews.delete(id);
-    }
-
-    for (const shot of laserShots) {
-      let view = this.laserShotViews.get(shot.id);
-
-      if (!view) {
-        view = createShadowedSprite(this.assets.laserShot);
-        this.laserShotsView.addChild(view);
-        this.laserShotViews.set(shot.id, view);
-      }
-
-      view.position.set(shot.position.x, shot.position.y);
-    }
+    this.syncViews(
+      laserShots,
+      this.laserShotViews,
+      this.laserShotsView,
+      () => createShadowedSprite(this.assets.laserShot),
+      (view, shot) => view.position.set(shot.position.x, shot.position.y),
+    );
   }
 
   private syncPowerUps(powerUps: readonly PowerUpState[]): void {
-    const currentPowerUps = new Set(powerUps.map((powerUp) => powerUp.id));
-
-    for (const [id, view] of this.powerUpViews) {
-      if (currentPowerUps.has(id)) continue;
-
-      this.powerUpsView.removeChild(view);
-      view.destroy({ children: true });
-      this.powerUpViews.delete(id);
-    }
-
-    for (const powerUp of powerUps) {
-      let view = this.powerUpViews.get(powerUp.id);
-
-      if (!view) {
+    this.syncViews(
+      powerUps,
+      this.powerUpViews,
+      this.powerUpsView,
+      (powerUp) => {
         const body = new AnimatedSprite({
           textures: this.assets.powerUps[powerUp.kind],
           anchor: 0.5,
           animationSpeed: 0.15,
           autoPlay: true,
         });
-        view = new Container();
+        const view = new Container();
         view.addChild(createSpriteShadow(body), body);
-        this.powerUpsView.addChild(view);
-        this.powerUpViews.set(powerUp.id, view);
-      }
-
-      view.position.set(powerUp.position.x, powerUp.position.y);
-    }
+        return view;
+      },
+      (view, powerUp) =>
+        view.position.set(powerUp.position.x, powerUp.position.y),
+    );
   }
 
   private syncBricks(bricks: readonly BrickState[]): void {
-    const currentBricks = new Set(bricks.map((brick) => brick.id));
-
-    for (const [id, view] of this.brickViews) {
-      if (currentBricks.has(id)) continue;
-
-      this.bricksView.removeChild(view);
-      view.destroy({ children: true });
-      this.brickViews.delete(id);
-    }
-
-    for (const brick of bricks) {
-      let view = this.brickViews.get(brick.id);
-
-      if (!view) {
-        view = new BrickView(brick, this.assets);
-        this.bricksView.addChild(view);
-        this.brickViews.set(brick.id, view);
-      }
-
-      view.sync(brick);
-    }
+    this.syncViews(
+      bricks,
+      this.brickViews,
+      this.bricksView,
+      (brick) => new BrickView(brick, this.assets),
+      (view, brick) => view.sync(brick),
+    );
   }
 
   private syncBalls(balls: readonly BallState[]): void {
-    const currentBalls = new Set(balls.map((ball) => ball.id));
-
-    for (const [id, view] of this.ballViews) {
-      if (currentBalls.has(id)) continue;
-
-      this.ballsView.removeChild(view);
-      view.destroy({ children: true });
-      this.ballViews.delete(id);
-    }
-
-    for (const ball of balls) {
-      let view = this.ballViews.get(ball.id);
-
-      if (!view) {
-        view = createShadowedSprite(this.assets.ball);
-        this.ballsView.addChild(view);
-        this.ballViews.set(ball.id, view);
-      }
-
-      view.position.set(ball.position.x, ball.position.y);
-    }
+    this.syncViews(
+      balls,
+      this.ballViews,
+      this.ballsView,
+      () => createShadowedSprite(this.assets.ball),
+      (view, ball) => view.position.set(ball.position.x, ball.position.y),
+    );
   }
 }
