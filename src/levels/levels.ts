@@ -2,6 +2,8 @@ import type { BrickKind } from "@/entities";
 import { ROUND_LAYOUTS } from "./layouts";
 import type { BrickDef, EnemySpawnDef, LevelDef } from "./types";
 
+export const GRID_COLUMNS = 11;
+
 // Symbols follow the color legend in public/arkanoid.png.
 const BRICK_KINDS: Record<string, BrickKind | undefined> = {
   W: "white",
@@ -34,8 +36,10 @@ function bricksFromLayout(
   let breakableCount = 0;
 
   layout.forEach((line, row) => {
-    if (line.length !== 11) {
-      throw new Error(`Round ${levelIndex}, row ${row} must have 11 columns`);
+    if (line.length !== GRID_COLUMNS) {
+      throw new Error(
+        `Round ${levelIndex}, row ${row} must have ${GRID_COLUMNS} columns`,
+      );
     }
 
     for (const [column, symbol] of [...line].entries()) {

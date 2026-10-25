@@ -1,8 +1,7 @@
 import { fieldBounds } from "@/config";
 import { Brick } from "@/entities";
-import { levels, type EnemySpawnDef } from "@/levels";
+import { GRID_COLUMNS, levels, type EnemySpawnDef } from "@/levels";
 
-const GRID_COLUMNS = 11;
 const GAP = 1;
 const START_Y = fieldBounds.top + 24;
 
@@ -31,8 +30,10 @@ export class LevelSystem {
     const startX = fieldBounds.left + (fieldWidth - gridWidth) / 2;
 
     return level.bricks.map(({ row, column, kind, canDropCapsule }) => {
-      if (column < 0 || column > 10) {
-        throw new Error("Max column index is 10");
+      if (column < 0 || column >= GRID_COLUMNS) {
+        throw new Error(
+          `Column index must be between 0 and ${GRID_COLUMNS - 1}`,
+        );
       }
 
       const position = {

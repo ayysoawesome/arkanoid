@@ -1,2 +1,2 @@
 export type { LevelDef, BrickDef, EnemySpawnDef } from "./types";
-export { levels } from "./levels";
+export { GRID_COLUMNS, levels } from "./levels";
