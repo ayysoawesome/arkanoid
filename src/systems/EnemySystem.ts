@@ -104,6 +104,7 @@ export class EnemySystem {
 
       if (this.overlapsPlayer(enemy, player)) {
         this.events.emit({ type: "enemyHit", enemy });
+        this.handleHit(enemy);
       }
     }
   }

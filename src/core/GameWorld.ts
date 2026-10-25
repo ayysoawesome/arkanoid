@@ -24,6 +24,7 @@ import {
   PlayerControlSystem,
   PowerUpSystem,
   ScoreSystem,
+  type HitResolver,
 } from "@/systems";
 import { EventQueue } from "./EventQueue";
 import type { PlayerPhaseFrame, PlayerPhaseKind } from "./PlayerPhase";
@@ -42,11 +43,23 @@ export class GameWorld {
   readonly enemies: Enemy[] = [];
   private readonly events = new EventQueue<WorldEvent>();
   private readonly playerControl = new PlayerControlSystem();
-  private readonly ballPhysics = new BallPhysicsSystem(this.events);
   private readonly brickSystem = new BrickSystem(this.events);
   private readonly enemySystem = new EnemySystem(this.events);
+  private readonly hitResolver: HitResolver = {
+    resolveBrickHit: (brick) => {
+      if (brick.destroyed) return;
+      this.events.emit({ type: "brickHit", brick });
+      this.brickSystem.handleHit(brick);
+    },
+    resolveEnemyHit: (enemy) => {
+      if (!enemy.alive) return;
+      this.events.emit({ type: "enemyHit", enemy });
+      this.enemySystem.handleHit(enemy);
+    },
+  };
+  private readonly ballPhysics = new BallPhysicsSystem(this.hitResolver);
   private readonly powerUpSystem = new PowerUpSystem(this.events);
-  private readonly laserSystem = new LaserSystem(this.events);
+  private readonly laserSystem = new LaserSystem(this.hitResolver);
   private readonly levelSystem = new LevelSystem();
   private readonly scoreSystem = new ScoreSystem(this.events);
   private remainingLives = worldConfig.initialLives;
@@ -232,10 +245,6 @@ export class GameWorld {
   }
 
   private readonly handleEvent = (event: WorldEvent): void => {
-    if (event.type === "brickHit") {
-      this.brickSystem.handleHit(event.brick);
-    }
-
     if (event.type === "brickDestroyed") {
       this.scoreSystem.awardBrick(
         event.brickKind,
@@ -247,10 +256,6 @@ export class GameWorld {
         exitOpen: this.exitIsOpen,
         slowActive: this.slowIsActive,
       });
-    }
-
-    if (event.type === "enemyHit") {
-      this.enemySystem.handleHit(event.enemy);
     }
 
     if (event.type === "enemyDestroyed") {

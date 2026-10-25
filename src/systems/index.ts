@@ -6,3 +6,4 @@ export { PowerUpSystem } from "./PowerUpSystem";
 export { LaserSystem } from "./LaserSystem";
 export { ScoreSystem } from "./ScoreSystem";
 export { EnemySystem } from "./EnemySystem";
+export type { HitResolver } from "./HitResolver";

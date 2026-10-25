@@ -1,6 +1,5 @@
-import type { EventWriter } from "@/core/EventQueue";
-import type { BrickHitEvent, EnemyHitEvent } from "@/core/WorldEvent";
 import { Brick, Enemy, LaserShot, Player } from "@/entities";
+import type { HitResolver } from "./HitResolver";
 
 const SHOT_COOLDOWN_SECONDS = 0.2;
 const MUZZLE_INSET = 9;
@@ -8,9 +7,7 @@ const MUZZLE_INSET = 9;
 export class LaserSystem {
   private cooldownRemaining = 0;
 
-  constructor(
-    private readonly events: EventWriter<BrickHitEvent | EnemyHitEvent>,
-  ) {}
+  constructor(private readonly hits: HitResolver) {}
 
   update({
     shots,
@@ -42,10 +39,10 @@ export class LaserSystem {
       const enemy = this.findHitEnemy(shot, enemies);
       if (enemy && (!brick || enemy.position.y > brick.position.y)) {
         shots.splice(i, 1);
-        this.events.emit({ type: "enemyHit", enemy });
+        this.hits.resolveEnemyHit(enemy);
       } else if (brick) {
         shots.splice(i, 1);
-        this.events.emit({ type: "brickHit", brick });
+        this.hits.resolveBrickHit(brick);
       }
     }
 

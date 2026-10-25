@@ -1,15 +1,12 @@
 import { Ball, Brick, Enemy, Player } from "@/entities";
 import { fieldBounds } from "@/config";
-import type { EventWriter } from "@/core/EventQueue";
-import type { BrickHitEvent, EnemyHitEvent } from "@/core/WorldEvent";
+import type { HitResolver } from "./HitResolver";
 
 const MAX_BOUNCE_ANGLE = (70 * Math.PI) / 180;
 const LAUNCH_ANGLE = (20 * Math.PI) / 180;
 
 export class BallPhysicsSystem {
-  constructor(
-    private readonly events: EventWriter<BrickHitEvent | EnemyHitEvent>,
-  ) {}
+  constructor(private readonly hits: HitResolver) {}
 
   update({
     ball,
@@ -115,7 +112,7 @@ export class BallPhysicsSystem {
         continue;
       }
 
-      this.events.emit({ type: "brickHit", brick });
+      this.hits.resolveBrickHit(brick);
 
       ball.position.x = previousX;
       ball.position.y = previousY;
@@ -156,7 +153,7 @@ export class BallPhysicsSystem {
         continue;
       }
 
-      this.events.emit({ type: "enemyHit", enemy });
+      this.hits.resolveEnemyHit(enemy);
       ball.position.x = previousX;
       ball.position.y = previousY;
       if (offsetX !== 0) ball.velocity.x *= -1;
