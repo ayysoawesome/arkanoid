@@ -6,6 +6,7 @@ export type GameOutcome = "victory" | "defeat";
 export type BrickHitEvent = {
   type: "brickHit";
   brickId: number;
+  destroyed: boolean;
 };
 
 export type BrickDestroyedEvent = {
@@ -27,6 +28,8 @@ export type ScoreChangedEvent = {
 
 export type EnemyHitEvent = { type: "enemyHit"; enemyId: number };
 export type EnemyDestroyedEvent = { type: "enemyDestroyed"; enemy: EnemyState };
+export type PlayerHitEvent = { type: "playerHit" };
+export type LaserFiredEvent = { type: "laserFired" };
 
 export type InternalBrickHitEvent = { type: "brickHit"; brick: Brick };
 export type InternalEnemyHitEvent = { type: "enemyHit"; enemy: Enemy };
@@ -42,9 +45,12 @@ export type WorldEvent = Readonly<
   | ScoreChangedEvent
   | EnemyHitEvent
   | EnemyDestroyedEvent
+  | PlayerHitEvent
+  | LaserFiredEvent
   | { type: "levelStarted"; levelIndex: number }
   | { type: "levelCleared"; levelIndex: number }
   | { type: "levelExited"; levelIndex: number }
+  | { type: "ballLost" }
   | { type: "lifeLost"; remainingLives: number }
   | { type: "lifeGained"; remainingLives: number }
   | { type: "gameEnded"; outcome: GameOutcome }

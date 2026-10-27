@@ -17,6 +17,7 @@ body {
 }
 
 #pixi-container {
+  position: relative;
   margin: auto;
   height: 100%;
   width: 100%;
@@ -30,4 +31,42 @@ body {
 
 #pixi-container canvas:focus {
   outline: none;
+}
+
+.mute-button {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  top: 8px;
+  right: 8px;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+}
+
+.mute-button::before {
+  content: "";
+  width: 36px;
+  height: 36px;
+  background: currentColor;
+  mask: url("/icons/volume-2.svg") no-repeat center / contain;
+}
+
+.mute-button[aria-pressed="true"]::before {
+  mask-image: url("/icons/volume-x.svg");
+}
+
+.mute-button:hover,
+.mute-button[aria-pressed="true"] {
+  color: #e74436;
+}
+
+.mute-button:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
 }

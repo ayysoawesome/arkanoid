@@ -69,9 +69,12 @@ export class GameWorld {
       this.enemySystem.handleHit(enemy);
     },
   };
-  private readonly ballPhysics = new BallPhysicsSystem(this.hitResolver);
+  private readonly ballPhysics = new BallPhysicsSystem(
+    this.hitResolver,
+    this.events,
+  );
   private readonly powerUpSystem = new PowerUpSystem(this.events);
-  private readonly laserSystem = new LaserSystem(this.hitResolver);
+  private readonly laserSystem = new LaserSystem(this.hitResolver, this.events);
   private readonly levelSystem = new LevelSystem();
   private readonly scoreSystem = new ScoreSystem(this.events);
   private remainingLives = worldConfig.initialLives;
@@ -272,6 +275,8 @@ export class GameWorld {
     }
     if (this.#balls.length === 0) {
       this.playerPhase = { kind: "destroy", elapsedSeconds: 0 };
+      this.events.emit({ type: "ballLost" });
+      this.events.flush();
     }
   }
 
@@ -551,6 +556,7 @@ export class GameWorld {
       return Object.freeze({
         type: event.type,
         brickId: this.entityId(event.brick),
+        destroyed: event.brick.destroyed,
       });
     }
     if (event.type === "enemyHit") {

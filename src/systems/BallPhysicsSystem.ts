@@ -1,6 +1,8 @@
 import { Ball, Brick, Enemy, Player } from "@/entities";
 import { fieldBounds } from "@/config";
 import type { HitResolver } from "./HitResolver";
+import type { EventWriter } from "@/core/EventQueue";
+import type { PlayerHitEvent } from "@/core/WorldEvent";
 
 const MAX_BOUNCE_ANGLE = (70 * Math.PI) / 180;
 const LAUNCH_ANGLE = (20 * Math.PI) / 180;
@@ -10,7 +12,10 @@ const UNPRODUCTIVE_BOUNCES_TO_ESCAPE = 20;
 export class BallPhysicsSystem {
   private readonly unproductiveBounces = new WeakMap<Ball, number>();
 
-  constructor(private readonly hits: HitResolver) {}
+  constructor(
+    private readonly hits: HitResolver,
+    private readonly events: EventWriter<PlayerHitEvent>,
+  ) {}
 
   update({
     ball,
@@ -74,6 +79,7 @@ export class BallPhysicsSystem {
 
     if (!crossedTop || !overlapsHorizontally) return;
     this.unproductiveBounces.delete(ball);
+    this.events.emit({ type: "playerHit" });
 
     if (player.mode === "catch") {
       const maxOffsetX = player.width / 2 - ball.radius;

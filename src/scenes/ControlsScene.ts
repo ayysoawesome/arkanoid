@@ -12,9 +12,9 @@ const layout = {
   keyboard: 0.33,
   mouse: 0.43,
   selectedMode: 0.53,
-  firstInstruction: 0.62,
-  instructionStep: 0.055,
-  back: 0.82,
+  firstInstruction: 0.6,
+  instructionStep: 0.05,
+  back: 0.84,
 } as const;
 
 export class ControlsScene extends Scene {
@@ -29,6 +29,7 @@ export class ControlsScene extends Scene {
     textStyles.selectedMode,
   );
   private readonly instructionLabels = [
+    createMenuLabel("", textStyles.selectedMode),
     createMenuLabel("", textStyles.selectedMode),
     createMenuLabel("", textStyles.selectedMode),
     createMenuLabel("", textStyles.selectedMode),
@@ -127,8 +128,18 @@ export class ControlsScene extends Scene {
     this.selectedModeLabel.text = `SELECTED: ${this.selectedMode.toUpperCase()}`;
     const instructions =
       this.selectedMode === "keyboard"
-        ? ["LEFT / RIGHT - MOVE", "SPACE - LAUNCH / FIRE", "ESC - PAUSE"]
-        : ["MOVE MOUSE - MOVE", "LEFT CLICK - LAUNCH / FIRE", "ESC - PAUSE"];
+        ? [
+            "LEFT / RIGHT - MOVE",
+            "SPACE - LAUNCH / FIRE",
+            "ESC - PAUSE",
+            "M - SOUND ON / OFF",
+          ]
+        : [
+            "MOVE MOUSE - MOVE",
+            "LEFT CLICK - LAUNCH / FIRE",
+            "ESC - PAUSE",
+            "M - SOUND ON / OFF",
+          ];
     this.instructionLabels.forEach((label, index) => {
       label.text = instructions[index];
     });

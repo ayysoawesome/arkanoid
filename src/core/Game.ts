@@ -4,6 +4,8 @@ import { GameScene } from "@/scenes/GameScene";
 import { InputManager } from "./InputManager";
 import { gameConfig } from "@/config";
 import { AssetLoader, type GameAssets } from "./assetsLoader";
+import { GameAudio } from "./GameAudio";
+import { MuteButton } from "@/ui/MuteButton";
 import {
   ControlsScene,
   LevelSelectScene,
@@ -46,6 +48,8 @@ export class Game {
   private highScore: number = loadHighScore();
   private menuSelection: MenuOptionId = "play";
   private singleLevelIndex: number | null = null;
+  private audio!: GameAudio;
+  private muteButton!: MuteButton;
 
   private onRendererResize = (width: number, height: number): void => {
     this.sceneManager?.resize(width, height);
@@ -65,6 +69,8 @@ export class Game {
       data: { family: "PixelOperator8" },
     });
     const assets = await new AssetLoader().load();
+    this.audio = new GameAudio();
+    this.muteButton = new MuteButton(this.host, this.app.canvas, this.audio);
     this.registerScenes(assets);
     this.sceneManager.resize(this.app.screen.width, this.app.screen.height);
     this.sceneManager.show("menu");
@@ -93,6 +99,7 @@ export class Game {
 
   private registerScenes(assets: GameAssets): void {
     const handleReturnToMenu = () => {
+      this.audio.stop();
       if (this.singleLevelIndex !== null) {
         this.sceneManager.show("levelSelect");
       } else {
@@ -104,6 +111,7 @@ export class Game {
       return new GameScene(
         this.inputManager,
         assets,
+        this.audio,
         this.playerInputMode,
         handleReturnToMenu,
         this.highScore,
@@ -175,6 +183,8 @@ export class Game {
     this.app.ticker.remove(this.update, this);
     this.inputManager?.destroy();
     this.sceneManager?.destroy();
+    this.muteButton?.destroy();
+    this.audio?.destroy();
     this.app.renderer.off("resize", this.onRendererResize);
     this.app.destroy({ removeView: true }, { children: true });
   }

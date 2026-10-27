@@ -2,6 +2,7 @@ import {
   Controls,
   type ControlBindings,
   GameAssets,
+  GameAudio,
   GameWorld,
   InputManager,
   type PlayerInputMode,
@@ -147,18 +148,33 @@ export class GameScene extends Scene {
   private readonly handleWorldEvent = (event: WorldEvent): void => {
     if (event.type === "brickHit") {
       this.worldView.playBrickHit(event.brickId);
+      if (!event.destroyed) this.audio.play("brickHit");
+    } else if (event.type === "brickDestroyed") {
+      this.audio.play("brickDestroy");
+    } else if (event.type === "playerHit") {
+      this.audio.play("playerHit");
+    } else if (event.type === "laserFired") {
+      this.audio.play("laserShot");
+    } else if (event.type === "powerUpCollected") {
+      if (event.kind === "expand") this.audio.play("expand");
     } else if (event.type === "enemyDestroyed") {
       this.worldView.playEnemyExplosion(event.enemy);
+      this.audio.play("enemyDestroy");
+    } else if (event.type === "ballLost") {
+      this.audio.play("loseBall");
     } else if (event.type === "lifeLost" || event.type === "lifeGained") {
       this.hud.setLives(event.remainingLives);
+      if (event.type === "lifeGained") this.audio.play("gainLife");
     } else if (event.type === "scoreChanged") {
       this.hud.setScore(event.score);
       this.onHighScoreChange(event.score);
     } else if (event.type === "levelStarted") {
       this.worldView.clearEnemyExplosions();
       this.hud.setRound(event.levelIndex);
+      this.audio.play("roundStart");
       this.enterMode({ mode: "transition", levelIndex: event.levelIndex });
     } else if (event.type === "gameEnded") {
+      if (event.outcome === "defeat") this.audio.play("gameOver");
       this.enterMode({ mode: "result", outcome: event.outcome });
     }
   };
@@ -166,6 +182,7 @@ export class GameScene extends Scene {
   constructor(
     inputManager: InputManager,
     assets: GameAssets,
+    private readonly audio: GameAudio,
     private readonly inputMode: PlayerInputMode,
     private readonly onReturnToMenu: () => void,
     highScore: number,

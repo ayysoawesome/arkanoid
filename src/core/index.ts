@@ -1,4 +1,5 @@
 export { Game } from "./Game";
+export { GameAudio } from "./GameAudio";
 export { SceneManager, Scene } from "./SceneManager";
 export { InputManager } from "./InputManager";
 export type { PlayerInputMode } from "./PlayerInputMode";
@@ -23,6 +24,8 @@ export type {
   ScoreChangedEvent,
   EnemyHitEvent,
   EnemyDestroyedEvent,
+  PlayerHitEvent,
+  LaserFiredEvent,
   WorldEvent,
 } from "./WorldEvent";
 export { type EventWriter, EventQueue } from "./EventQueue";
