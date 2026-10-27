@@ -1,10 +1,10 @@
 export class Ball {
   static readonly RADIUS = 3;
   static readonly INITIAL_SPEED = 120;
-  static readonly MIN_SPEED = 60;
+  static readonly MIN_SPEED = 80;
   static readonly SPEED_INCREMENT = 12;
-  static readonly MAX_SPEED = 180;
-  static readonly COLLISIONS_PER_INCREASE = 10;
+  static readonly MAX_SPEED = 240;
+  static readonly COLLISIONS_PER_INCREASE = 4;
 
   readonly radius = Ball.RADIUS;
   private collisionsSinceIncrease = 0;
