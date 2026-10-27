@@ -62,11 +62,13 @@ export class WorldView extends Container {
     powerUps,
     laserShots,
     enemies,
+    currentLevelIndex,
     exitOpen,
     gateFrames,
     playerPhaseFrame,
     status,
   }: WorldState): void {
+    this.fieldView.setBackground(currentLevelIndex);
     this.fieldView.setExitOpen(exitOpen);
     this.fieldView.setGateFrames(gateFrames);
     this.playerView.sync(player, playerPhaseFrame, status === "defeat");

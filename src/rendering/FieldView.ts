@@ -12,10 +12,13 @@ import {
   Container,
   Graphics,
   Sprite,
+  Texture,
   TilingSprite,
 } from "pixi.js";
 
 export class FieldView extends Container {
+  private readonly background: TilingSprite;
+  private readonly backgroundTextures: readonly Texture[];
   private readonly gatesView = new Container();
   private readonly gateViews: Record<EnemyGateSide, Sprite>;
   private readonly gateFrames: GameAssets["field"]["gateFrames"];
@@ -25,17 +28,23 @@ export class FieldView extends Container {
   constructor(assets: GameAssets["field"]) {
     super();
     this.gateFrames = assets.gateFrames;
+    this.backgroundTextures = [
+      assets.backgrounds.blueDiagonal,
+      assets.backgrounds.greenPattern,
+      assets.backgrounds.blueMaze,
+      assets.backgrounds.redMaze,
+    ];
 
     const base = new Graphics()
       .rect(0, 0, worldConfig.width, worldConfig.height)
       .fill(0x000000);
 
-    const background = new TilingSprite({
-      texture: assets.background,
+    this.background = new TilingSprite({
+      texture: this.backgroundTextures[0],
       width: fieldBounds.right - fieldBounds.left,
       height: fieldBounds.bottom - fieldBounds.top,
     });
-    background.position.set(fieldBounds.left, fieldBounds.top);
+    this.background.position.set(fieldBounds.left, fieldBounds.top);
 
     const topRail = new TilingSprite({
       texture: assets.topRail,
@@ -73,7 +82,7 @@ export class FieldView extends Container {
 
     this.addChild(
       base,
-      background,
+      this.background,
       topRail,
       leftCorner,
       rightCorner,
@@ -83,6 +92,15 @@ export class FieldView extends Container {
       this.exitView,
       this.gatesView,
     );
+  }
+
+  setBackground(levelIndex: number): void {
+    if (levelIndex < 1) return;
+    const texture =
+      this.backgroundTextures[
+        (levelIndex - 1) % this.backgroundTextures.length
+      ];
+    if (this.background.texture !== texture) this.background.texture = texture;
   }
 
   setGateFrames(frames: Readonly<Record<EnemyGateSide, EnemyGateFrame>>): void {

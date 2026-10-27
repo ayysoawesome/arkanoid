@@ -10,13 +10,19 @@ const gamePaths = {
 } as const;
 
 const fieldPaths = {
-  background: "/fields/backgrounds/blue-diagonal.png",
   cornerLeft: "/fields/frame/corner-left.png",
   cornerRight: "/fields/frame/corner-right.png",
   topRail: "/fields/frame/top-rail.png",
   sideLeft: "/fields/frame/side-left.png",
   sideRight: "/fields/frame/side-right.png",
   closedExit: "/fields/frame/exit-closed.png",
+} as const;
+
+const fieldBackgroundPaths = {
+  blueDiagonal: "/fields/backgrounds/blue-diagonal.png",
+  greenPattern: "/fields/backgrounds/green-pattern.png",
+  blueMaze: "/fields/backgrounds/blue-maze.png",
+  redMaze: "/fields/backgrounds/red-maze.png",
 } as const;
 
 const fieldFramePaths = {
@@ -83,7 +89,11 @@ export type GameAssets = Readonly<Record<keyof typeof gamePaths, Texture>> &
   Readonly<Record<keyof typeof playerAnimationPaths, Texture[]>> & {
     readonly field: Readonly<
       Record<keyof typeof fieldPaths, Texture> &
-        Record<keyof typeof fieldFramePaths, Texture[]>
+        Record<keyof typeof fieldFramePaths, Texture[]> & {
+          backgrounds: Readonly<
+            Record<keyof typeof fieldBackgroundPaths, Texture>
+          >;
+        }
     >;
     readonly playerSpawnFrames: Texture[];
     readonly playerDestroyFrames: Texture[];
@@ -133,6 +143,7 @@ export class AssetLoader {
     const [
       game,
       fieldTextures,
+      fieldBackgrounds,
       fieldFrames,
       playerAnimations,
       playerPhases,
@@ -143,6 +154,7 @@ export class AssetLoader {
     ] = await Promise.all([
       loadCatalog(gamePaths, loadTexture),
       loadCatalog(fieldPaths, loadTexture),
+      loadCatalog(fieldBackgroundPaths, loadTexture),
       loadCatalog(fieldFramePaths, loadFrames),
       loadCatalog(playerAnimationPaths, loadFrames),
       loadCatalog(playerPhasePaths, loadFrames),
@@ -158,7 +170,11 @@ export class AssetLoader {
 
     return {
       ...game,
-      field: { ...fieldTextures, ...fieldFrames },
+      field: {
+        ...fieldTextures,
+        backgrounds: fieldBackgrounds,
+        ...fieldFrames,
+      },
       ...playerAnimations,
       playerSpawnFrames: playerPhases.spawn,
       playerDestroyFrames: playerPhases.destroy,
