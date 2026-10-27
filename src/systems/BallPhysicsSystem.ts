@@ -5,17 +5,10 @@ import type { HitResolver } from "./HitResolver";
 const MAX_BOUNCE_ANGLE = (70 * Math.PI) / 180;
 const LAUNCH_ANGLE = (20 * Math.PI) / 180;
 const ESCAPE_ANGLE = (12 * Math.PI) / 180;
-const REPEATED_HITS_TO_ESCAPE = 20;
-
-type BounceObstacle = Brick | "left" | "right" | "top";
-type BounceHistory = {
-  first: BounceObstacle;
-  second?: BounceObstacle;
-  count: number;
-};
+const UNPRODUCTIVE_BOUNCES_TO_ESCAPE = 20;
 
 export class BallPhysicsSystem {
-  private readonly bounceHistory = new WeakMap<Ball, BounceHistory>();
+  private readonly unproductiveBounces = new WeakMap<Ball, number>();
 
   constructor(private readonly hits: HitResolver) {}
 
@@ -37,7 +30,7 @@ export class BallPhysicsSystem {
     if (!ball.alive) return;
 
     if (ball.attached) {
-      this.bounceHistory.delete(ball);
+      this.unproductiveBounces.delete(ball);
       this.updateAttachedBall(ball, player, launchRequested);
       return;
     }
@@ -62,7 +55,7 @@ export class BallPhysicsSystem {
 
     if (ball.position.y - ball.radius >= fieldBounds.bottom) {
       ball.alive = false;
-      this.bounceHistory.delete(ball);
+      this.unproductiveBounces.delete(ball);
     }
   }
 
@@ -80,7 +73,7 @@ export class BallPhysicsSystem {
       ball.position.x - ball.radius <= playerRight;
 
     if (!crossedTop || !overlapsHorizontally) return;
-    this.bounceHistory.delete(ball);
+    this.unproductiveBounces.delete(ball);
 
     if (player.mode === "catch") {
       const maxOffsetX = player.width / 2 - ball.radius;
@@ -145,9 +138,9 @@ export class BallPhysicsSystem {
           offsetX === 0 && offsetY === 0
             ? Math.sign(ball.velocity.y)
             : Math.sign(offsetY);
-        this.recordRepeatedHit(ball, brick, normalX, normalY);
+        this.recordUnproductiveBounce(ball, normalX, normalY);
       } else {
-        this.bounceHistory.delete(ball);
+        this.unproductiveBounces.delete(ball);
       }
 
       return true;
@@ -178,7 +171,7 @@ export class BallPhysicsSystem {
       }
 
       this.hits.resolveEnemyHit(enemy);
-      this.bounceHistory.delete(ball);
+      this.unproductiveBounces.delete(ball);
       ball.position.x = previousX;
       ball.position.y = previousY;
       if (offsetX !== 0) ball.velocity.x *= -1;
@@ -198,12 +191,12 @@ export class BallPhysicsSystem {
       ball.position.x = minX;
       ball.velocity.x = Math.abs(ball.velocity.x);
       ball.registerBounce();
-      this.recordRepeatedHit(ball, "left", 1, 0);
+      this.recordUnproductiveBounce(ball, 1, 0);
     } else if (ball.position.x > maxX) {
       ball.position.x = maxX;
       ball.velocity.x = -Math.abs(ball.velocity.x);
       ball.registerBounce();
-      this.recordRepeatedHit(ball, "right", -1, 0);
+      this.recordUnproductiveBounce(ball, -1, 0);
     }
 
     // hit top wall
@@ -215,32 +208,18 @@ export class BallPhysicsSystem {
       if (ball.currentSpeed < Ball.MAX_SPEED) {
         ball.setSpeed(Ball.MAX_SPEED);
       }
-      this.recordRepeatedHit(ball, "top", 0, 1);
+      this.recordUnproductiveBounce(ball, 0, 1);
     }
   }
 
-  private recordRepeatedHit(
+  private recordUnproductiveBounce(
     ball: Ball,
-    obstacle: BounceObstacle,
     normalX: number,
     normalY: number,
   ): void {
-    const history = this.bounceHistory.get(ball);
-    if (history === undefined) {
-      this.bounceHistory.set(ball, { first: obstacle, count: 1 });
-      return;
-    }
-
-    if (obstacle !== history.first && obstacle !== history.second) {
-      if (history.second === undefined) {
-        history.second = obstacle;
-      } else {
-        history.first = obstacle;
-        history.second = undefined;
-        history.count = 0;
-      }
-    }
-    if (++history.count < REPEATED_HITS_TO_ESCAPE) return;
+    const count = (this.unproductiveBounces.get(ball) ?? 0) + 1;
+    this.unproductiveBounces.set(ball, count);
+    if (count < UNPRODUCTIVE_BOUNCES_TO_ESCAPE) return;
 
     const cos = Math.cos(ESCAPE_ANGLE);
     const sin = Math.sin(ESCAPE_ANGLE);
@@ -255,9 +234,7 @@ export class BallPhysicsSystem {
 
     ball.velocity.x = nextX;
     ball.velocity.y = nextY;
-    history.first = obstacle;
-    history.second = undefined;
-    history.count = 0;
+    this.unproductiveBounces.set(ball, 0);
   }
 
   private setBallDirection(ball: Ball, angle: number) {
